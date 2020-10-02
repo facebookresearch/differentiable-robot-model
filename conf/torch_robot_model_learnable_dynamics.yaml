@@ -1,0 +1,13 @@
+# @package _global_
+model:
+  # any link that is not specified as learnable will be initialized from urdf
+  rel_urdf_path: 'kuka_iiwa/urdf/iiwa7.urdf'
+  learnable_rigid_body_config:
+    learnable_links: ['iiwa_link_1', 'iiwa_link_2', 'iiwa_link_3', 'iiwa_link_4', 'iiwa_link_5', 'iiwa_link_6', 'iiwa_link_7']
+    learnable_dynamics_params: ['mass', 'inertia_mat']
+    learnable_kinematics_params: []
+    mass_parametrization:
+      _target_: differentiable_robot_model.rigid_body.parametrizations.UnconstrainedMassValue
+    inertia_parametrization:
+      _target_: differentiable_robot_model.rigid_body.inertia_parametrizations.InertiaMatrix3DNoStructureNet
+  name: 'diffrnea_learnable_dynamics'
