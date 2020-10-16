@@ -22,16 +22,17 @@ class InverseDynamicsDataset(Dataset):
         return self.data['tau'].var(dim=0)
 
 
-def generate_random_forward_kinematics_data(robot_model, n_data):
+def generate_random_forward_kinematics_data(robot_model, n_data, ee_name):
     limits_per_joint = robot_model.get_joint_limits()
+    ndof = robot_model._n_dofs
     joint_lower_bounds = np.asarray([joint["lower"] for joint in limits_per_joint])
     joint_upper_bounds = np.asarray([joint["upper"] for joint in limits_per_joint])
     q = torch.tensor(
         np.random.uniform(
-            low=joint_lower_bounds, high=joint_upper_bounds, size=(n_data, 7)
+            low=joint_lower_bounds, high=joint_upper_bounds, size=(n_data, ndof)
         )
     )
-    ee_pos, _ = robot_model.compute_forward_kinematics(q=q, link_name="iiwa_link_ee")
+    ee_pos, _ = robot_model.compute_forward_kinematics(q=q, link_name=ee_name)
 
     return {"q": q, "ee_pos": ee_pos}
 
