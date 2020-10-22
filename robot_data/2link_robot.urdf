@@ -31,7 +31,7 @@
         </inertial> 
 	</link>
 
-	<joint name="baseHinge" type="continuous">
+	<joint name="baseHinge" type="revolute">
         <origin rpy="0 0 0"  xyz="0 0 0.15"/>
 		<axis xyz="0 0 1"/>
 		<parent link="base"/>
@@ -55,13 +55,12 @@
         </inertial> 
 	</link>
 
-	<joint name="interArm" type="continuous">
+	<joint name="interArm" type="revolute">
 		<axis xyz="0 0 1"/>
 		<parent link="arm1"/>
 		<child link="arm2"/>
 		<origin rpy="0 0 0" xyz="1 0 0"/>
-		<limit effort="300" lower="-2.9670597283903604" upper="2.9670597283903604" velocity="10"/>
-        <safety_controller k_position="100" k_velocity="2" soft_lower_limit="-2.9321531433504737" soft_upper_limit="2.9321531433504737"/>
+		<limit effort="20" lower="-2.9670597283903604" upper="2.9670597283903604" velocity="10"/>
         <dynamics damping="0.5"/>
 	</joint>
 

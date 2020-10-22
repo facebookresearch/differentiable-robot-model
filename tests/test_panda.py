@@ -17,7 +17,7 @@
 # torch.set_printoptions(precision=3, sci_mode=False)
 # torch.set_default_tensor_type(torch.DoubleTensor)
 #
-# rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
+# rel_urdf_path = "panda.urdf"
 # urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 #
 # pc_id = p.connect(p.DIRECT)
@@ -128,7 +128,7 @@
 #     abs_config_dir = os.path.abspath("conf")
 #     with initialize_config_dir(config_dir=abs_config_dir):
 #         # compose from config.yaml, this composes a bunch of defaults in:
-#         cfg = hydra_compose(config_name="torch_robot_model_gt.yaml")
+#         cfg = hydra_compose(config_name="torch_robot_model_gt_panda.yaml")
 #     robot_model = DifferentiableRobotModel(**cfg.model)
 #     test_case = sample_test_case(robot_model)
 #
@@ -147,7 +147,7 @@
 #         )
 #
 #         model_jac_lin, model_jac_ang = robot_model.compute_endeffector_jacobian(
-#             torch.Tensor(test_angles).reshape(1, 7), "iiwa_link_ee"
+#             torch.Tensor(test_angles).reshape(1, 7), "panda_hand"
 #         )
 #
 #         bullet_jac_lin, bullet_jac_ang = p.calculateJacobian(
@@ -210,7 +210,7 @@
 #         bullet_ee_state = p.getLinkState(robot_id, ee_id)
 #
 #         model_ee_state = robot_model.compute_forward_kinematics(
-#             torch.Tensor(test_angles).reshape(1, 7), "iiwa_link_ee"
+#             torch.Tensor(test_angles).reshape(1, 7), "panda_hand"
 #         )
 #
 #         assert np.allclose(
