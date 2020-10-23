@@ -33,7 +33,7 @@ JOINT_DAMPING = 0.5
 
 # need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
 # does use joint damping, but the inverse dynamics call does not use joint damping
-for link_idx in range(5): #8
+for link_idx in range(4): #8
     p.changeDynamics(
         robot_id,
         link_idx,
