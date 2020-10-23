@@ -1,0 +1,17 @@
+<package>
+  <name>moveit_resources_panda_description</name>
+  <version>0.7.1</version>
+  <description>panda Resources used for MoveIt! testing</description>
+
+  <author email="isucan@willowgarage.edu">Ioan Sucan</author>
+  <author email="acorn@willowgarage.edu">Acorn Pooley</author>
+
+  <maintainer email="dave@dav.ee">Dave Coleman</maintainer>
+
+  <license>BSD</license>
+  <url type="website">http://moveit.ros.org</url>
+  <url type="bugtracker">https://github.com/ros-planning/moveit-resources/issues</url>
+  <url type="repository">https://github.com/ros-planning/moveit-resources</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

@@ -29,7 +29,7 @@ with initialize_config_dir(config_dir=abs_config_dir):
 gt_robot_model = DifferentiableRobotModel(**gt_robot_model_cfg.model)
 learnable_robot_model = DifferentiableRobotModel(**learnable_robot_model_cfg.model)
 
-train_data = generate_random_forward_kinematics_data(gt_robot_model, n_data=100, ee_name="panda_hand")
+train_data = generate_random_forward_kinematics_data(gt_robot_model, n_data=100, ee_name="panda_link8")
 q = train_data["q"]
 gt_ee_pos = train_data["ee_pos"]
 
@@ -38,7 +38,7 @@ loss_fn = torch.nn.MSELoss()
 for i in range(3000):
     optimizer.zero_grad()
     ee_pos_pred, _ = learnable_robot_model.compute_forward_kinematics(
-        q=q, link_name="panda_hand"
+        q=q, link_name="panda_link8"
     )
     loss = loss_fn(ee_pos_pred, gt_ee_pos)
     if i % 100 == 0:

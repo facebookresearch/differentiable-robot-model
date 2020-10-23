@@ -57,7 +57,10 @@ class URDFRobotModel(object):
                                 'lower': joint.limit.lower,
                                 'upper': joint.limit.upper,
                                 'velocity': joint.limit.velocity}
-                joint_damping = torch.tensor(joint.dynamics.damping)
+                try:
+                    joint_damping = torch.tensor(joint.dynamics.damping)
+                except AttributeError:
+                    joint_damping = torch.tensor(0.0)
 
         body_params['rot_angles'] = rot_angles
         body_params['trans'] = trans
