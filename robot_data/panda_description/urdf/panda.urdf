@@ -156,7 +156,13 @@
         <axis xyz="0 0 1" />
         <limit effort="12" lower="-2.9671" upper="2.9671" velocity="2.8710" />
     </joint>
-    <link name="panda_link8" />
+    <link name="panda_link8">
+        <inertial>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+          <mass value="0"/>
+          <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+    </link>
     <joint name="panda_joint8" type="fixed">
         <origin rpy="0 0 0" xyz="0 0 0.107" />
         <parent link="panda_link7" />
