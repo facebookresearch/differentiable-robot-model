@@ -129,7 +129,7 @@ def setup_dict():
     abs_config_dir = os.path.abspath("conf")
     with initialize_config_dir(config_dir=abs_config_dir):
         # compose from config.yaml, this composes a bunch of defaults in:
-        cfg = hydra_compose(config_name="torch_robot_model_gt_panda.yaml")
+        cfg = hydra_compose(config_name="torch_robot_model_gt_panda_no_gripper.yaml")
     robot_model = DifferentiableRobotModel(**cfg.model)
     test_case = sample_test_case(robot_model)
 
@@ -229,7 +229,6 @@ class TestRobotModel:
             torch.Tensor(test_accelerations).reshape(1, dof),
             include_gravity=True,
         )
-        import pdb; pdb.set_trace()
         if JOINT_DAMPING != 0.0:
             # if we have non-zero joint damping, we'll have to subtract the damping term from our predicted torques,
             # because pybullet does not include damping/viscous friction in their inverse dynamics call
