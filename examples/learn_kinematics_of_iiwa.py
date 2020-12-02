@@ -29,7 +29,7 @@ with initialize_config_dir(config_dir=abs_config_dir):
 gt_robot_model = DifferentiableRobotModel(**gt_robot_model_cfg.model)
 learnable_robot_model = DifferentiableRobotModel(**learnable_robot_model_cfg.model)
 
-train_data = generate_random_forward_kinematics_data(gt_robot_model, n_data=100)
+train_data = generate_random_forward_kinematics_data(gt_robot_model, n_data=100, ee_name="iiwa_link_ee")
 q = train_data["q"]
 gt_ee_pos = train_data["ee_pos"]
 

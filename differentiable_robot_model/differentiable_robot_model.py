@@ -408,9 +408,18 @@ class DifferentiableRobotModel(torch.nn.Module):
         lin_jac, ang_jac = torch.zeros([3, self._n_dofs]), torch.zeros(
             [3, self._n_dofs]
         )
+
+        # any joints larger than this joint, will have 0 in the jacobian
+        parent_name = self._urdf_model.get_name_of_parent_body(link_name)
+        parent_joint_id = self._urdf_model.find_joint_of_body(parent_name)
+
         for i, idx in enumerate(self._controlled_joints):
+            if (idx -1) > parent_joint_id:
+                continue
             pose = self._bodies[idx].pose
-            p_i, z_i = pose.translation()[0], pose.rotation()[0, :, 2]
+            axis = self._bodies[idx].joint_axis
+            axis_idx = int(torch.where(axis[0])[0])
+            p_i, z_i = pose.translation()[0], pose.rotation()[0, :, axis_idx]
             lin_jac[:, i] = torch.cross(z_i, p_e - p_i)
             ang_jac[:, i] = z_i
 

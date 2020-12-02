@@ -39,6 +39,7 @@ class URDFRobotModel(object):
             joint_type = "fixed"
             joint_limits = None
             joint_damping = None
+            joint_axis = torch.zeros((1, 3))
         else:
             link_name = link.name
             jid = self.find_joint_of_body(link_name)
@@ -52,12 +53,17 @@ class URDFRobotModel(object):
             joint_type = joint.type
             joint_limits = None
             joint_damping = torch.zeros(1)
+            joint_axis = torch.zeros((1, 3))
             if joint_type != 'fixed':
                 joint_limits = {'effort': joint.limit.effort,
                                 'lower': joint.limit.lower,
                                 'upper': joint.limit.upper,
                                 'velocity': joint.limit.velocity}
-                joint_damping = torch.tensor(joint.dynamics.damping)
+                try:
+                    joint_damping = torch.tensor(joint.dynamics.damping)
+                except AttributeError:
+                    joint_damping = torch.tensor(0.0)
+                joint_axis = torch.tensor(joint.axis).reshape(1, 3)
 
         body_params['rot_angles'] = rot_angles
         body_params['trans'] = trans
@@ -65,6 +71,7 @@ class URDFRobotModel(object):
         body_params['joint_type'] = joint_type
         body_params['joint_limits'] = joint_limits
         body_params['joint_damping'] = joint_damping
+        body_params['joint_axis'] = joint_axis
 
         if link.inertial is not None:
             mass = torch.tensor(link.inertial.mass)
