@@ -414,7 +414,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         parent_joint_id = self._urdf_model.find_joint_of_body(parent_name)
 
         for i, idx in enumerate(self._controlled_joints):
-            if idx > parent_joint_id:
+            if i > parent_joint_id:
                 continue
             pose = self._bodies[idx].pose
             axis = self._bodies[idx].joint_axis

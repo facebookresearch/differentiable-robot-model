@@ -17,10 +17,10 @@ np.set_printoptions(precision=3, suppress=True)
 torch.set_printoptions(precision=3, sci_mode=False)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
-rel_urdf_path = "panda_description/urdf/panda.urdf"
+rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
-dof = 9
-print("DOF+++++++++++++++++++++++++++++++++++++++++")
+dof = 7
+
 pc_id = p.connect(p.DIRECT)
 robot_id = p.loadURDF(
     urdf_path,
@@ -41,7 +41,7 @@ print("JOINT INFO")
 
 # need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
 # does use joint damping, but the inverse dynamics call does not use joint damping
-for link_idx in range(12):
+for link_idx in range(8):
     p.changeDynamics(
         robot_id,
         link_idx,
@@ -57,12 +57,6 @@ def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
     joint_lower_bounds = [joint["lower"] for joint in limits_per_joint]
     joint_upper_bounds = [joint["upper"] for joint in limits_per_joint]
     joint_velocity_limits = [joint["velocity"] for joint in limits_per_joint]
-    joint_lower_bounds[-1] = 0
-    joint_upper_bounds[-1] = 0
-    joint_velocity_limits[-1] = 0
-    joint_lower_bounds[-2] = 0
-    joint_upper_bounds[-2] = 0
-    joint_velocity_limits[-2] = 0
     joint_angles = []
     joint_velocities = []
     joint_accelerations = []
@@ -146,7 +140,7 @@ class TestRobotModel:
     def test_ee_jacobian(self, request, setup_dict):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
-        ee_id = 11
+        ee_id = 7
 
         test_angles, test_velocities = (
             test_case["joint_angles"],
@@ -176,13 +170,12 @@ class TestRobotModel:
 
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
-        ee_id = 11
+        ee_id = 7
 
         test_angles, test_velocities = (
             test_case["joint_angles"],
             test_case["joint_velocities"],
         )
-
         for i in range(dof):
             p.resetJointState(
                 bodyUniqueId=robot_id,
@@ -217,12 +210,11 @@ class TestRobotModel:
             test_case["joint_velocities"],
         )
         test_accelerations = test_case["joint_accelerations"]
-        controlled_joints = robot_model._controlled_joints
 
-        for i, joint_idx in enumerate(controlled_joints):
+        for i in range(7):
             p.resetJointState(
                 bodyUniqueId=robot_id,
-                jointIndex=joint_idx,
+                jointIndex=i,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
             )
