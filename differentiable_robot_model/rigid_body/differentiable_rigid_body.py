@@ -36,9 +36,8 @@ class DifferentiableRigidBody(torch.nn.Module):
         self.rot_angles = rigid_body_params["rot_angles"]
         self.joint_limits = rigid_body_params["joint_limits"]
 
-        # local z axis (w.r.t. joint coordinate frame):
-        self._z = torch.zeros((1, 3))
-        self._z[:, 2] = 1.0
+        # local joint axis (w.r.t. joint coordinate frame):
+        self.joint_axis = rigid_body_params["joint_axis"]
 
         self.joint_pose = CoordinateTransform()
         self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
@@ -77,7 +76,7 @@ class DifferentiableRigidBody(torch.nn.Module):
     def update_joint_state(self, q, qd):
         batch_size = q.shape[0]
 
-        self.joint_ang_vel = qd @ self._z
+        self.joint_ang_vel = qd @ self.joint_axis
 
         roll = self.rot_angles[0]
         pitch = self.rot_angles[1]
@@ -87,12 +86,19 @@ class DifferentiableRigidBody(torch.nn.Module):
 
         # when we update the joint angle, we also need to update the transformation
         self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
-        self.joint_pose.set_rotation(fixed_rotation.repeat(batch_size, 1, 1) @ z_rot(q))
+        if self.joint_axis[0, 0] == 1:
+            rot = x_rot(q)
+        elif self.joint_axis[0, 1] == 1:
+            rot = y_rot(q)
+        else:
+            rot = z_rot(q)
+
+        self.joint_pose.set_rotation(fixed_rotation.repeat(batch_size, 1, 1) @ rot)
         return
 
     def update_joint_acc(self, qdd):
         # local z axis (w.r.t. joint coordinate frame):
-        self.joint_ang_acc = qdd @ self._z
+        self.joint_ang_acc = qdd @ self.joint_axis
         return
 
     def multiply_inertia_with_motion_vec(self, lin, ang):
