@@ -32,9 +32,16 @@ robot_id = p.loadURDF(
 p.setGravity(0, 0, -9.81)
 JOINT_DAMPING = 0.5
 
+print("JOINT INFO")
+num_joints = p.getNumJoints(robot_id)
+for i in range(num_joints):
+    print(p.getJointInfo(robot_id, i))
+print("JOINT INFO")
+
+
 # need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
 # does use joint damping, but the inverse dynamics call does not use joint damping
-for link_idx in range(8):
+for link_idx in range(12):
     p.changeDynamics(
         robot_id,
         link_idx,
@@ -141,7 +148,7 @@ class TestRobotModel:
     def test_ee_jacobian(self, request, setup_dict):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
-        ee_id = dof
+        ee_id = 11
 
         test_angles, test_velocities = (
             test_case["joint_angles"],
@@ -149,7 +156,7 @@ class TestRobotModel:
         )
 
         model_jac_lin, model_jac_ang = robot_model.compute_endeffector_jacobian(
-            torch.Tensor(test_angles).reshape(1, dof), "panda_link8"
+            torch.Tensor(test_angles).reshape(1, dof), "panda_virtual_ee_link"
         )
 
         bullet_jac_lin, bullet_jac_ang = p.calculateJacobian(
@@ -196,7 +203,8 @@ class TestRobotModel:
 
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
-        ee_id = dof
+        ee_id = 11
+
         test_angles, test_velocities = (
             test_case["joint_angles"],
             test_case["joint_velocities"],
@@ -212,7 +220,7 @@ class TestRobotModel:
         bullet_ee_state = p.getLinkState(robot_id, ee_id)
 
         model_ee_state = robot_model.compute_forward_kinematics(
-            torch.Tensor(test_angles).reshape(1, dof), "panda_link8"
+            torch.Tensor(test_angles).reshape(1, dof), "panda_virtual_ee_link"
         )
 
         assert np.allclose(

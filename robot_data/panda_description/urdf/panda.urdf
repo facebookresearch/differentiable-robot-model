@@ -5,6 +5,11 @@
 <!-- =================================================================================== -->
 <robot name="panda" xmlns:xacro="http://www.ros.org/wiki/xacro">
     <link name="panda_link0">
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 0 0.05"/>
+            <mass value="2.9"/>
+            <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/link0.dae" />
@@ -17,6 +22,11 @@
         </collision>
     </link>
     <link name="panda_link1">
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 -0.04 -0.05"/>
+            <mass value="2.7"/>
+            <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/link1.dae" />
@@ -37,6 +47,11 @@
         <limit effort="87" lower="-2.9671" upper="2.9671" velocity="2.3925" />
     </joint>
     <link name="panda_link2">
+        <inertial>
+           <origin rpy="0 0 0" xyz="0 -0.04 0.06"/>
+           <mass value="2.73"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/link2.dae" />
@@ -57,6 +72,11 @@
         <limit effort="87" lower="-1.8326" upper="1.8326" velocity="2.3925" />
     </joint>
     <link name="panda_link3">
+        <inertial>
+           <origin rpy="0 0 0" xyz="0.01 0.01 -0.05"/>
+           <mass value="2.04"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/link3.dae" />
@@ -77,6 +97,11 @@
         <limit effort="87" lower="-2.9671" upper="2.9671" velocity="2.3925" />
     </joint>
     <link name="panda_link4">
+        <inertial>
+           <origin rpy="0 0 0" xyz="-0.03 0.03 0.02"/>
+           <mass value="2.08"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/link4.dae" />
@@ -97,6 +122,11 @@
         <limit effort="87" lower="-3.1416" upper="0.0873" velocity="2.3925" />
     </joint>
     <link name="panda_link5">
+        <inertial>
+           <origin rpy="0 0 0" xyz="0 0.04 -0.12"/>
+           <mass value="3"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/link5.dae" />
@@ -117,6 +147,11 @@
         <limit effort="12" lower="-2.9671" upper="2.9671" velocity="2.8710" />
     </joint>
     <link name="panda_link6">
+        <inertial>
+           <origin rpy="0 0 0" xyz="0.04 0 0"/>
+           <mass value="1.3"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/link6.dae" />
@@ -137,6 +172,11 @@
         <limit effort="12" lower="-0.0873" upper="3.8223" velocity="2.8710" />
     </joint>
     <link name="panda_link7">
+        <inertial>
+           <origin rpy="0 0 0" xyz="0 0 0.08"/>
+           <mass value=".2"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/link7.dae" />
@@ -158,9 +198,9 @@
     </joint>
     <link name="panda_link8">
         <inertial>
-          <origin rpy="0 0 0" xyz="0 0 0"/>
-          <mass value="0"/>
-          <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+           <origin rpy="0 0 0" xyz="0 0 0"/>
+           <mass value="0.0"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
         </inertial>
     </link>
     <joint name="panda_joint8" type="fixed">
@@ -175,6 +215,11 @@
         <origin rpy="0 0 -0.785398163397" xyz="0 0 0" />
     </joint>
     <link name="panda_hand">
+        <inertial>
+           <origin rpy="0 0 0" xyz="0 0 0.04"/>
+           <mass value=".81"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/hand.dae" />
@@ -187,6 +232,18 @@
         </collision>
     </link>
     <link name="panda_leftfinger">
+        <contact>
+           <friction_anchor/>
+           <stiffness value="30000.0"/>
+           <damping value="1000.0"/>
+           <spinning_friction value="0.1"/>
+           <lateral_friction value="1.0"/>
+        </contact>
+        <inertial>
+           <origin rpy="0 0 0" xyz="0 0.01 0.02"/>
+           <mass value="0.1"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <geometry>
                 <mesh filename="meshes/visual/finger.dae" />
@@ -199,6 +256,18 @@
         </collision>
     </link>
     <link name="panda_rightfinger">
+         <contact>
+           <friction_anchor/>
+           <stiffness value="30000.0"/>
+           <damping value="1000.0"/>
+           <spinning_friction value="0.1"/>
+           <lateral_friction value="1.0"/>
+        </contact>
+        <inertial>
+           <origin rpy="0 0 0" xyz="0 -0.01 0.02"/>
+           <mass value="0.1"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
         <visual>
             <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
             <geometry>
@@ -227,4 +296,17 @@
         <limit effort="20" lower="0.0" upper="0.04" velocity="0.2" />
         <mimic joint="panda_finger_joint1" />
     </joint>
+
+    <link name="panda_virtual_ee_link">
+        <inertial>
+          <origin rpy="0 0 0" xyz="0 0 0"/>
+           <mass value="0.0"/>
+           <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+        </inertial>
+   </link>
+   <joint name="panda_virtual_ee_joint" type="fixed">
+    <parent link="panda_hand"/>
+    <child link="panda_virtual_ee_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0.105"/>
+  </joint>
 </robot>
