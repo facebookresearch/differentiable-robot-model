@@ -134,15 +134,15 @@ class CholeskyNet(torch.nn.Module):
         L = utils.bfill_diagonal(L, l_diag)
         return L
 
-    def get_symm_pos_def_matrix_and_l(self, raw_l_input):
+    def get_symm_pos_semi_def_matrix_and_l(self, raw_l_input):
         """
         :param raw_l_input: please see definition of get_raw_l()
-        :return: Symmetric positive definite matrix SPD and the vector l (please see definition of get_l())
+        :return: Symmetric positive semi-definite matrix SPSD and the vector l (please see definition of get_l())
         """
         l = self.get_l(raw_l_input)
         L = self.get_L(l)
-        SPD = L @ L.transpose(-2, -1)
-        return SPD, l
+        SPSD = L @ L.transpose(-2, -1)
+        return SPSD, l
 
 class TriangParam3DInertiaMatrixNet(torch.nn.Module):
     """
@@ -266,57 +266,55 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
 
     def __init__(
         self,
-        bias=0.0,
+        bias=1.0e-7,
         init_param_std=0.01,
         init_param=None,
         is_initializing_params=True,
     ):
-        super().__init__(qdim=3, bias=bias)
+        super().__init__(qdim=3, bias=0)
+        self.spd_3d_cov_inertia_mat_diag_bias = bias
         if (init_param is None) or (not is_initializing_params):
             init_param_value = torch.empty(1, 6).normal_(mean=0.0, std=init_param_std)
         else:
             init_inertia_matrix = init_param.squeeze()
-            init_spsd_3d_cov_inertia_matrix = init_param.new_zeros((3, 3))
-            init_spsd_3d_cov_inertia_matrix[0, 0] = 0.5 * (
+            init_spd_3d_cov_inertia_matrix = init_param.new_zeros((3, 3))
+            init_spd_3d_cov_inertia_matrix[0, 0] = 0.5 * (
                 -init_inertia_matrix[0, 0]
                 + init_inertia_matrix[1, 1]
                 + init_inertia_matrix[2, 2]
             )
-            init_spsd_3d_cov_inertia_matrix[1, 1] = 0.5 * (
+            init_spd_3d_cov_inertia_matrix[1, 1] = 0.5 * (
                 init_inertia_matrix[0, 0]
                 - init_inertia_matrix[1, 1]
                 + init_inertia_matrix[2, 2]
             )
-            init_spsd_3d_cov_inertia_matrix[2, 2] = 0.5 * (
+            init_spd_3d_cov_inertia_matrix[2, 2] = 0.5 * (
                 init_inertia_matrix[0, 0]
                 + init_inertia_matrix[1, 1]
                 - init_inertia_matrix[2, 2]
             )
-            init_spsd_3d_cov_inertia_matrix[1, 0] = -init_inertia_matrix[1, 0]
-            init_spsd_3d_cov_inertia_matrix[2, 0] = -init_inertia_matrix[2, 0]
-            init_spsd_3d_cov_inertia_matrix[2, 1] = -init_inertia_matrix[2, 1]
-            init_spsd_3d_cov_inertia_matrix[0, 1] = init_spsd_3d_cov_inertia_matrix[
-                1, 0
-            ]
-            init_spsd_3d_cov_inertia_matrix[0, 2] = init_spsd_3d_cov_inertia_matrix[
-                2, 0
-            ]
-            init_spsd_3d_cov_inertia_matrix[1, 2] = init_spsd_3d_cov_inertia_matrix[
-                2, 1
-            ]
+            init_spd_3d_cov_inertia_matrix[1, 0] = -init_inertia_matrix[1, 0]
+            init_spd_3d_cov_inertia_matrix[2, 0] = -init_inertia_matrix[2, 0]
+            init_spd_3d_cov_inertia_matrix[2, 1] = -init_inertia_matrix[2, 1]
+            init_spd_3d_cov_inertia_matrix[0, 1] = init_spd_3d_cov_inertia_matrix[1, 0]
+            init_spd_3d_cov_inertia_matrix[0, 2] = init_spd_3d_cov_inertia_matrix[2, 0]
+            init_spd_3d_cov_inertia_matrix[1, 2] = init_spd_3d_cov_inertia_matrix[2, 1]
             L = torch.tensor(
-                np.linalg.cholesky(init_spsd_3d_cov_inertia_matrix.numpy())
+                np.linalg.cholesky(
+                    init_spd_3d_cov_inertia_matrix.numpy()
+                    - (self.spd_3d_cov_inertia_mat_diag_bias * np.eye(3))
+                )
             )
             diag_indices = np.diag_indices(
                 min(
-                    init_spsd_3d_cov_inertia_matrix.size(-2),
-                    init_spsd_3d_cov_inertia_matrix.size(-1),
+                    init_spd_3d_cov_inertia_matrix.size(-2),
+                    init_spd_3d_cov_inertia_matrix.size(-1),
                 )
             )
             tril_indices = np.tril_indices(
-                init_spsd_3d_cov_inertia_matrix.size(-2),
+                init_spd_3d_cov_inertia_matrix.size(-2),
                 k=-1,
-                m=init_spsd_3d_cov_inertia_matrix.size(-1),
+                m=init_spd_3d_cov_inertia_matrix.size(-1),
             )
             dim0_indices = np.hstack([diag_indices[0], tril_indices[0]])
             dim1_indices = np.hstack([diag_indices[1], tril_indices[1]])
@@ -328,23 +326,27 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
 
     def forward(self):
         raw_l_input = self.l.unsqueeze(0)
-        [spsd_3d_cov_inertia_matrix, _] = super().get_symm_pos_def_matrix_and_l(
+        [spsd_3d_cov_inertia_matrix, _] = super().get_symm_pos_semi_def_matrix_and_l(
             raw_l_input=raw_l_input
         )
         spsd_3d_cov_inertia_matrix = spsd_3d_cov_inertia_matrix.squeeze()
-        inertia_matrix = spsd_3d_cov_inertia_matrix.new_zeros((3, 3))
+        spd_3d_cov_inertia_matrix = (
+            spsd_3d_cov_inertia_matrix
+            + (self.spd_3d_cov_inertia_mat_diag_bias * torch.eye(3))
+        )
+        inertia_matrix = spd_3d_cov_inertia_matrix.new_zeros((3, 3))
         inertia_matrix[0, 0] = (
-            spsd_3d_cov_inertia_matrix[1, 1] + spsd_3d_cov_inertia_matrix[2, 2]
+            spd_3d_cov_inertia_matrix[1, 1] + spd_3d_cov_inertia_matrix[2, 2]
         )
         inertia_matrix[1, 1] = (
-            spsd_3d_cov_inertia_matrix[0, 0] + spsd_3d_cov_inertia_matrix[2, 2]
+            spd_3d_cov_inertia_matrix[0, 0] + spd_3d_cov_inertia_matrix[2, 2]
         )
         inertia_matrix[2, 2] = (
-            spsd_3d_cov_inertia_matrix[0, 0] + spsd_3d_cov_inertia_matrix[1, 1]
+            spd_3d_cov_inertia_matrix[0, 0] + spd_3d_cov_inertia_matrix[1, 1]
         )
-        inertia_matrix[1, 0] = -spsd_3d_cov_inertia_matrix[1, 0]
-        inertia_matrix[2, 0] = -spsd_3d_cov_inertia_matrix[2, 0]
-        inertia_matrix[2, 1] = -spsd_3d_cov_inertia_matrix[2, 1]
+        inertia_matrix[1, 0] = -spd_3d_cov_inertia_matrix[1, 0]
+        inertia_matrix[2, 0] = -spd_3d_cov_inertia_matrix[2, 0]
+        inertia_matrix[2, 1] = -spd_3d_cov_inertia_matrix[2, 1]
         inertia_matrix[0, 1] = inertia_matrix[1, 0]
         inertia_matrix[0, 2] = inertia_matrix[2, 0]
         inertia_matrix[1, 2] = inertia_matrix[2, 1]
@@ -355,11 +357,17 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
     def __init__(
         self, bias, init_param_std=0.01, init_param=None, is_initializing_params=True
     ):
-        super().__init__(qdim=3, bias=bias)
+        super().__init__(qdim=3, bias=0)
+        self.spd_3d_inertia_mat_diag_bias = bias
         if (init_param is None) or (not is_initializing_params):
             init_param_value = torch.empty(1, 6).normal_(mean=0.0, std=init_param_std)
         else:
-            L = torch.tensor(np.linalg.cholesky(init_param.squeeze().numpy()))
+            L = torch.tensor(
+                np.linalg.cholesky(
+                    init_param.squeeze().numpy()
+                    - (self.spd_3d_inertia_mat_diag_bias * np.eye(3))
+                )
+            )
             diag_indices = np.diag_indices(
                 min(init_param.size(-2), init_param.size(-1))
             )
@@ -376,10 +384,14 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
 
     def forward(self):
         raw_l_input = self.l.unsqueeze(0)
-        [spd_3d_inertia_matrix, _] = super().get_symm_pos_def_matrix_and_l(
+        [spsd_3d_inertia_matrix, _] = super().get_symm_pos_semi_def_matrix_and_l(
             raw_l_input=raw_l_input
         )
-        return spd_3d_inertia_matrix.squeeze()
+        spd_3d_inertia_matrix = (
+            spsd_3d_inertia_matrix.squeeze()
+            + (self.spd_3d_inertia_mat_diag_bias * torch.eye(3))
+        )
+        return spd_3d_inertia_matrix
 
 
 class Symm3DInertiaMatrixNet(SymmMatNet):
