@@ -4,14 +4,12 @@ import random
 import torch
 import numpy as np
 import pytest
-from hydra.experimental import compose as hydra_compose
-from hydra.experimental import initialize_config_dir
 
 import pybullet as p
-import robot_data
-from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel
+import diff_robot_data
+from differentiable_robot_model.differentiable_robot_model import DifferentiableFrankaPanda
 
-robot_description_folder = robot_data.__path__[0]
+robot_description_folder = diff_robot_data.__path__[0]
 
 np.set_printoptions(precision=3, suppress=True)
 torch.set_printoptions(precision=3, sci_mode=False)
@@ -22,22 +20,17 @@ urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 dof = 7
 
 pc_id = p.connect(p.DIRECT)
+
 robot_id = p.loadURDF(
     urdf_path,
     basePosition=[0, 0, 0],
     useFixedBase=True,
     flags=p.URDF_USE_INERTIA_FROM_FILE,
+    physicsClientId=pc_id
 )
 
-p.setGravity(0, 0, -9.81)
+p.setGravity(0, 0, -9.81, physicsClientId=pc_id)
 JOINT_DAMPING = 0.0
-
-print("JOINT INFO")
-num_joints = p.getNumJoints(robot_id)
-for i in range(num_joints):
-    print(p.getJointInfo(robot_id, i))
-print("JOINT INFO")
-
 
 # need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
 # does use joint damping, but the inverse dynamics call does not use joint damping
@@ -48,8 +41,9 @@ for link_idx in range(8):
         linearDamping=0.0,
         angularDamping=0.0,
         jointDamping=JOINT_DAMPING,
+        physicsClientId=pc_id
     )
-    p.changeDynamics(robot_id, link_idx, maxJointVelocity=200)
+    p.changeDynamics(robot_id, link_idx, maxJointVelocity=200, physicsClientId=pc_id)
 
 
 def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
@@ -125,12 +119,7 @@ def setup_dict():
     np.random.seed(1)
     torch.manual_seed(0)
 
-    # Load configuration
-    abs_config_dir = os.path.abspath("conf")
-    with initialize_config_dir(config_dir=abs_config_dir):
-        # compose from config.yaml, this composes a bunch of defaults in:
-        cfg = hydra_compose(config_name="torch_robot_model_gt_panda_no_gripper.yaml")
-    robot_model = DifferentiableRobotModel(**cfg.model)
+    robot_model = DifferentiableFrankaPanda()
     test_case = sample_test_case(robot_model)
 
     return {"robot_model": robot_model, "test_case": test_case}
@@ -158,6 +147,7 @@ class TestRobotModel:
             objPositions=test_angles,
             objVelocities=test_velocities,
             objAccelerations=[0] * dof,
+            physicsClientId=pc_id
         )
         assert np.allclose(
             model_jac_lin.detach().numpy(), np.asarray(bullet_jac_lin), atol=1e-7
@@ -182,8 +172,9 @@ class TestRobotModel:
                 jointIndex=i,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
+                physicsClientId=pc_id
             )
-        bullet_ee_state = p.getLinkState(robot_id, ee_id)
+        bullet_ee_state = p.getLinkState(robot_id, ee_id, physicsClientId=pc_id)
 
         model_ee_state = robot_model.compute_forward_kinematics(
             torch.Tensor(test_angles).reshape(1, dof), "panda_virtual_ee_link"
@@ -217,18 +208,19 @@ class TestRobotModel:
                 jointIndex=i,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
+                physicsClientId=pc_id
             )
 
         bullet_torques = p.calculateInverseDynamics(
-            robot_id, test_angles, test_velocities, test_accelerations
+            robot_id, test_angles, test_velocities, test_accelerations, physicsClientId=pc_id
         )
-
         model_torques = robot_model.compute_inverse_dynamics(
             torch.Tensor(test_angles).reshape(1, dof),
             torch.Tensor(test_velocities).reshape(1, dof),
             torch.Tensor(test_accelerations).reshape(1, dof),
             include_gravity=True,
         )
+
         if JOINT_DAMPING != 0.0:
             # if we have non-zero joint damping, we'll have to subtract the damping term from our predicted torques,
             # because pybullet does not include damping/viscous friction in their inverse dynamics call
@@ -262,9 +254,10 @@ class TestRobotModel:
                 jointIndex=joint_idx,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
+                physicsClientId=pc_id
             )
 
-        bullet_mass = np.array(p.calculateMassMatrix(robot_id, test_angles))
+        bullet_mass = np.array(p.calculateMassMatrix(robot_id, test_angles, physicsClientId=pc_id))
         inertia_mat = robot_model.compute_lagrangian_inertia_matrix(
             torch.Tensor(test_angles).reshape(1, dof)
         )
@@ -290,6 +283,7 @@ class TestRobotModel:
             jointIndices=controlled_joints,
             controlMode=p.VELOCITY_CONTROL,
             forces=np.zeros(n_dofs),
+            physicsClientId=pc_id
         )
 
         # set simulation to be in state test_angles/test_velocities
@@ -299,12 +293,14 @@ class TestRobotModel:
                 jointIndex=i,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
+                physicsClientId=pc_id
             )
 
         # let's get the torque that achieves the test_accelerations from the current state
         bullet_tau = np.array(
             p.calculateInverseDynamics(
-                robot_id, test_angles, test_velocities, test_accelerations
+                robot_id, test_angles, test_velocities, test_accelerations,
+                physicsClientId=pc_id
             )
         )
 
@@ -313,11 +309,12 @@ class TestRobotModel:
             jointIndices=controlled_joints,
             controlMode=p.TORQUE_CONTROL,
             forces=bullet_tau,
+            physicsClientId=pc_id
         )
 
-        p.stepSimulation()
+        p.stepSimulation(physicsClientId = pc_id)
 
-        cur_joint_states = p.getJointStates(robot_id, controlled_joints)
+        cur_joint_states = p.getJointStates(robot_id, controlled_joints, physicsClientId = pc_id)
         q = [cur_joint_states[i][0] for i in range(n_dofs)]
         qd = [cur_joint_states[i][1] for i in range(n_dofs)]
 

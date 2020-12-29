@@ -466,3 +466,33 @@ class DifferentiableRobotModel(torch.nn.Module):
         for name, param in self.named_parameters():
             print(f"{name}: {param}")
 
+
+class LearnableRigidBodyConfig:
+    def __init__(self, learnable_links=[], learnable_kinematics_params=[], learnable_dynamics_params=[]):
+        self.learnable_links = learnable_links
+        self.learnable_kinematics_params = learnable_kinematics_params
+        self.learnable_dynamics_params = learnable_dynamics_params
+
+
+class DifferentiableKUKAiiwa(DifferentiableRobotModel):
+    def __init__(self):
+        self.rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
+        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.name = "differentiable_kuka_iiwa"
+        super().__init__(self.rel_urdf_path, self.learnable_rigid_body_config, self.name)
+
+
+class DifferentiableFrankaPanda(DifferentiableRobotModel):
+    def __init__(self):
+        self.rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
+        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.name = "differentiable_franka_panda"
+        super().__init__(self.rel_urdf_path, self.learnable_rigid_body_config, self.name)
+
+
+class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
+    def __init__(self):
+        self.rel_urdf_path ="2link_robot.urdf"
+        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.name = "diff_robot_model_gt"
+        super().__init__(self.rel_urdf_path, self.learnable_rigid_body_config, self.name)

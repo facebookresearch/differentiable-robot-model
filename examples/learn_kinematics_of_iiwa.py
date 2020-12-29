@@ -7,7 +7,7 @@ import os
 from hydra.experimental import compose as hydra_compose
 from hydra.experimental import initialize_config_dir
 
-from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel
+from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel, DifferentiableKUKAiiwa
 from differentiable_robot_model.data_generation_utils import generate_random_forward_kinematics_data
 
 torch.set_printoptions(precision=3, sci_mode=False)
@@ -17,16 +17,14 @@ torch.manual_seed(0)
 
 
 abs_config_dir = os.path.abspath("../conf")
-# we load configurations for a ground truth robot , and a learnable robot model
+# we load a learnable robot model
 with initialize_config_dir(config_dir=abs_config_dir):
-    gt_robot_model_cfg = hydra_compose(config_name="torch_robot_model_gt.yaml")
     # which parameters are learnable is specified in the config file
     learnable_robot_model_cfg = hydra_compose(
         config_name="torch_robot_model_learnable_kinematics.yaml"
     )
 
-
-gt_robot_model = DifferentiableRobotModel(**gt_robot_model_cfg.model)
+gt_robot_model = DifferentiableKUKAiiwa()
 learnable_robot_model = DifferentiableRobotModel(**learnable_robot_model_cfg.model)
 
 train_data = generate_random_forward_kinematics_data(gt_robot_model, n_data=100, ee_name="iiwa_link_ee")
