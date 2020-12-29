@@ -50,7 +50,7 @@ setup(
     author_email='fmeier@fb.com',
     python_requires=REQUIRES_PYTHON,
     url="https://github.com/facebookresearch/differentiable-robot-model",
-    keywords='analytical robot models, differentiable, optimization',
+    keywords='robotics, differentiable, optimization',
     packages=['differentiable_robot_model', 'diff_robot_data'],
     install_requires=install_requires,
     license="MIT",
