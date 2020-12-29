@@ -2,12 +2,12 @@
 import os
 import torch
 from urdf_parser_py.urdf import URDF
-import robot_data
+import diff_robot_data
 
 import warnings
 warnings.filterwarnings("ignore")
 
-robot_description_folder = robot_data.__path__[0]
+robot_description_folder = diff_robot_data.__path__[0]
 
 
 class URDFRobotModel(object):

@@ -474,7 +474,7 @@ class LearnableRigidBodyConfig:
         self.learnable_dynamics_params = learnable_dynamics_params
 
 
-class DifferentiableKukaIiwa(DifferentiableRobotModel):
+class DifferentiableKUKAiiwa(DifferentiableRobotModel):
     def __init__(self):
         self.rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
         self.learnable_rigid_body_config = LearnableRigidBodyConfig()

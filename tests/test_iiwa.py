@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 
 import pybullet as p
-import robot_data
-from differentiable_robot_model.differentiable_robot_model import DifferentiableKukaIiwa
+import diff_robot_data
+from differentiable_robot_model.differentiable_robot_model import DifferentiableKUKAiiwa
 
-robot_description_folder = robot_data.__path__[0]
+robot_description_folder = diff_robot_data.__path__[0]
 
 np.set_printoptions(precision=3, suppress=True)
 torch.set_printoptions(precision=3, sci_mode=False)
@@ -127,7 +127,7 @@ def setup_dict():
     torch.manual_seed(0)
 
     # Load configuration
-    robot_model = DifferentiableKukaIiwa()
+    robot_model = DifferentiableKUKAiiwa()
     test_case = sample_test_case(robot_model)
 
     return {"robot_model": robot_model, "test_case": test_case}

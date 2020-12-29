@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 
 import pybullet as p
-import robot_data
+import diff_robot_data
 from differentiable_robot_model.differentiable_robot_model import DifferentiableTwoLinkRobot
 
-robot_description_folder = robot_data.__path__[0]
+robot_description_folder = diff_robot_data.__path__[0]
 
 np.set_printoptions(precision=3, suppress=True)
 torch.set_printoptions(precision=3, sci_mode=False)

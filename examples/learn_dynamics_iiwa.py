@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 from hydra.experimental import compose as hydra_compose
 from hydra.experimental import initialize_config_dir
 
-from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel
-from differentiable_robot_model.data_generation_utils import generate_random_inverse_dynamics_data, generate_sine_motion_inverse_dynamics_data
+from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel, DifferentiableKUKAiiwa
+from differentiable_robot_model.data_generation_utils import generate_sine_motion_inverse_dynamics_data
 
 torch.set_printoptions(precision=3, sci_mode=False)
 
@@ -31,14 +31,13 @@ class NMSELoss(torch.nn.Module):
 
 abs_config_dir=os.path.abspath("../conf")
 with initialize_config_dir(config_dir=abs_config_dir):
-    gt_robot_model_cfg = hydra_compose(config_name="torch_robot_model_gt.yaml")
     learnable_robot_model_cfg = hydra_compose(config_name="torch_robot_model_learnable_l4dc_constraints.yaml")
 
 
 # ground truth robot model (with known kinematics and dynamics parameters) - used to generate data
-gt_robot_model = DifferentiableRobotModel(**gt_robot_model_cfg.model)
+gt_robot_model = DifferentiableKUKAiiwa()
 gt_robot_model.print_link_names()
-#train_data = generate_random_inverse_dynamics_data(gt_robot_model, n_data=1000)
+
 train_data = generate_sine_motion_inverse_dynamics_data(gt_robot_model, n_data=1000, dt=1.0/250.0, freq=0.05)
 train_loader = DataLoader(dataset=train_data, batch_size=100, shuffle=False)
 
