@@ -2,17 +2,10 @@
 import os
 import torch
 from urdf_parser_py.urdf import URDF
-import diff_robot_data
-
-import warnings
-warnings.filterwarnings("ignore")
-
-robot_description_folder = diff_robot_data.__path__[0]
 
 
 class URDFRobotModel(object):
-    def __init__(self, rel_urdf_path, device='cpu'):
-        urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
+    def __init__(self, urdf_path, device='cpu'):
         self.robot = URDF.from_xml_file(urdf_path)
         self._device = device
 

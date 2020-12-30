@@ -1,7 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 from typing import List, Tuple, Dict, Optional, Any
+import os
 
 import torch
+
 
 from differentiable_robot_model.rigid_body import utils
 from differentiable_robot_model.rigid_body.differentiable_rigid_body import (
@@ -10,6 +12,9 @@ from differentiable_robot_model.rigid_body.differentiable_rigid_body import (
 )
 from differentiable_robot_model.urdf_utils import URDFRobotModel
 
+import diff_robot_data
+robot_description_folder = diff_robot_data.__path__[0]
+
 
 class DifferentiableRobotModel(torch.nn.Module):
     """
@@ -17,7 +22,7 @@ class DifferentiableRobotModel(torch.nn.Module):
     """
 
     def __init__(
-        self, rel_urdf_path: str, learnable_rigid_body_config, name=""
+        self, urdf_path: str, learnable_rigid_body_config=None, name=""
     ):
 
         super().__init__()
@@ -27,7 +32,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         self._device = "cpu"
 
         self._urdf_model = URDFRobotModel(
-            rel_urdf_path=rel_urdf_path, device=self._device
+            urdf_path=urdf_path, device=self._device
         )
         self._bodies = torch.nn.ModuleList()
         self._n_dofs = 0
@@ -476,23 +481,26 @@ class LearnableRigidBodyConfig:
 
 class DifferentiableKUKAiiwa(DifferentiableRobotModel):
     def __init__(self):
-        self.rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
+        rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
+        self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = LearnableRigidBodyConfig()
         self.name = "differentiable_kuka_iiwa"
-        super().__init__(self.rel_urdf_path, self.learnable_rigid_body_config, self.name)
+        super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)
 
 
 class DifferentiableFrankaPanda(DifferentiableRobotModel):
     def __init__(self):
-        self.rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
+        rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
+        self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = LearnableRigidBodyConfig()
         self.name = "differentiable_franka_panda"
-        super().__init__(self.rel_urdf_path, self.learnable_rigid_body_config, self.name)
+        super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)
 
 
 class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
     def __init__(self):
-        self.rel_urdf_path ="2link_robot.urdf"
+        rel_urdf_path ="2link_robot.urdf"
+        self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = LearnableRigidBodyConfig()
         self.name = "diff_robot_model_gt"
-        super().__init__(self.rel_urdf_path, self.learnable_rigid_body_config, self.name)
+        super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)
