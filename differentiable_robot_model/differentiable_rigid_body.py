@@ -1,8 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 import torch
-from differentiable_robot_model.rigid_body import utils
-from differentiable_robot_model.rigid_body.coordinate_transform import (
+from . import utils
+from .coordinate_transform import (
     CoordinateTransform,
     z_rot,
     y_rot,

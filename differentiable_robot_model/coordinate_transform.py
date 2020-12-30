@@ -1,7 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import torch
 import math
-import differentiable_robot_model.rigid_body.utils as utils
+import differentiable_robot_model.utils as utils
 
 
 def x_rot(angle):

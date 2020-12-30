@@ -7,7 +7,7 @@ model:
     learnable_dynamics_params: ['mass', 'inertia_mat']
     learnable_kinematics_params: []
     mass_parametrization:
-      _target_: differentiable_robot_model.rigid_body.parametrizations.PositiveMassValue
+      _target_: differentiable_robot_model.rigid_body_parametrizations.PositiveMassValue
     inertia_parametrization:
-      _target_: differentiable_robot_model.rigid_body.inertia_parametrizations.CovParameterized3DInertiaMatrixNet
+      _target_: differentiable_robot_model.rigid_body_parametrizations.CovParameterized3DInertiaMatrixNet
   name: 'learnable_dynamics_l4dc_structured'

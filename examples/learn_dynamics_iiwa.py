@@ -10,7 +10,7 @@ from hydra.experimental import initialize_config_dir
 
 from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel, DifferentiableKUKAiiwa
 from differentiable_robot_model.data_generation_utils import generate_sine_motion_inverse_dynamics_data
-
+import diff_robot_data
 torch.set_printoptions(precision=3, sci_mode=False)
 
 random.seed(0)
@@ -29,7 +29,7 @@ class NMSELoss(torch.nn.Module):
         return werr.mean()
 
 
-abs_config_dir=os.path.abspath("../conf")
+abs_config_dir=os.path.abspath("conf")
 with initialize_config_dir(config_dir=abs_config_dir):
     learnable_robot_model_cfg = hydra_compose(config_name="torch_robot_model_learnable_l4dc_constraints.yaml")
 
@@ -42,7 +42,10 @@ train_data = generate_sine_motion_inverse_dynamics_data(gt_robot_model, n_data=1
 train_loader = DataLoader(dataset=train_data, batch_size=100, shuffle=False)
 
 # learnable robot model
-learnable_robot_model = DifferentiableRobotModel(**learnable_robot_model_cfg.model)
+urdf_path = os.path.join(diff_robot_data.__path__[0], learnable_robot_model_cfg.model.rel_urdf_path)
+learnable_robot_model = DifferentiableRobotModel(urdf_path,
+                                                 learnable_robot_model_cfg.model.learnable_rigid_body_config,
+                                                 learnable_robot_model_cfg.model.name)
 optimizer = torch.optim.Adam(learnable_robot_model.parameters(), lr=1e-2)
 loss_fn = NMSELoss(train_data.var())
 for i in range(10):

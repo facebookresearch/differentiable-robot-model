@@ -18,7 +18,7 @@ DESC = ('A pytorch library that implements differentiable and learnable robot mo
         'and/or propagate gradients through analytical robot computations such as forward kinematics.')
 
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = "0.1.1"
+VERSION = "0.1.1-6"
 
 data_files = []
 datadir = "diff_robot_data"

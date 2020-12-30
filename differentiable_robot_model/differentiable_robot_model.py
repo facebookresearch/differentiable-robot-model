@@ -1,16 +1,16 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-from typing import List, Tuple, Dict, Optional, Any
+from typing import List, Tuple, Dict, Optional
 import os
 
 import torch
 
 
-from differentiable_robot_model.rigid_body import utils
-from differentiable_robot_model.rigid_body.differentiable_rigid_body import (
+from .utils import cross_product
+from .differentiable_rigid_body import (
     DifferentiableRigidBody,
     LearnableRigidBody,
 )
-from differentiable_robot_model.urdf_utils import URDFRobotModel
+from .urdf_utils import URDFRobotModel
 
 import diff_robot_data
 robot_description_folder = diff_robot_data.__path__[0]
@@ -47,7 +47,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
 
-            if link.name in learnable_rigid_body_config.learnable_links:
+            if (learnable_rigid_body_config is not None) and (link.name in learnable_rigid_body_config.learnable_links):
                 body = LearnableRigidBody(
                     learnable_rigid_body_config=learnable_rigid_body_config,
                     gt_rigid_body_params=rigid_body_params,
@@ -196,10 +196,10 @@ class DifferentiableRobotModel(torch.nn.Module):
             )
 
             # body velocity cross joint vel
-            new_w = utils.cross_product(body.ang_vel, body.joint_ang_vel)
-            new_v = utils.cross_product(
+            new_w = cross_product(body.ang_vel, body.joint_ang_vel)
+            new_v = cross_product(
                 body.ang_vel, body.joint_lin_vel
-            ) + utils.cross_product(body.lin_vel, body.joint_ang_vel)
+            ) + cross_product(body.lin_vel, body.joint_ang_vel)
 
             body.lin_acc = new_lin_acc + new_v
             body.ang_acc = new_ang_acc + new_w
@@ -231,10 +231,10 @@ class DifferentiableRobotModel(torch.nn.Module):
             )
 
             # body vel x IcVel
-            tmp_ang_force = utils.cross_product(
+            tmp_ang_force = cross_product(
                 body.ang_vel, IcVel_ang
-            ) + utils.cross_product(body.lin_vel, IcVel_lin)
-            tmp_lin_force = utils.cross_product(body.ang_vel, IcVel_lin)
+            ) + cross_product(body.lin_vel, IcVel_lin)
+            tmp_lin_force = cross_product(body.ang_vel, IcVel_lin)
 
             body.lin_force = IcAcc_lin + tmp_lin_force + child_lin_force
             body.ang_force = IcAcc_ang + tmp_ang_force + child_ang_force
