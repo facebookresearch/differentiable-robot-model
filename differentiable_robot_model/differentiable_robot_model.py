@@ -502,5 +502,5 @@ class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
         rel_urdf_path ="2link_robot.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = LearnableRigidBodyConfig()
-        self.name = "diff_robot_model_gt"
+        self.name = "diff_2d_robot"
         super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)

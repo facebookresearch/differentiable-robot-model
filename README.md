@@ -3,17 +3,25 @@ Differentiable and learnable robot model. Our differentiable robot model impleme
 forward kinematics and inverse dynamics, in a fully differentiable way. We also allow to specify  
 parameters (kinematics or dynamics parameters), which can then be identified from data (see examples folder).
 
-Currently, our code should work with any kinematic chain (eg any 7-DOF manipulator should work). It's been tested 
-and evaluated particularly for the Kuka iiwa.
+Currently, our code should work with any kinematic chain. This package comes with wrappers specifically for:
+* Kuka iiwa
+* Franka Panda
+* a 2-link toy robot
 
 
 ## Setup
+Requirements: python>= 3.7  
+you can either pip install:
 ```
-conda create -n robot_model python=3.7
-conda activate robot_model
+pip install differentiable-robot-model
+```
+
+or clone this repo and install from source:
+```
+git clone git@github.com:facebookresearch/differentiable-robot-model.git
+cd differentiable-robot-model
 python setup.py develop
 ```
-Note that the data files might not be found if the setup is not run with `develop` (Fixme)
 
 ## Examples
 2 examples scripts show the learning of kinematics parameters
