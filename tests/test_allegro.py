@@ -15,7 +15,7 @@ np.set_printoptions(precision=3, suppress=True)
 torch.set_printoptions(precision=3, sci_mode=False)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
-rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
+rel_urdf_path = "allegro/urdf/allegro_hand_description_left.urdf"
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 pc_id = p.connect(p.DIRECT)
@@ -113,7 +113,10 @@ def setup_dict():
 
 
 @pytest.mark.parametrize("ee_link_idx, ee_link_name", [
-    (7, "iiwa_link_ee"), 
+    (4, "link_11.0_tip"), 
+    (9, "link_7.0_tip"), 
+    (14, "link_3.0_tip"), 
+    (19, "link_15.0_tip"), # thumb
 ])
 class TestRobotModel:
     def test_ee_jacobian(self, request, setup_dict, ee_link_idx, ee_link_name):
