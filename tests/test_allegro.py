@@ -119,6 +119,41 @@ def setup_dict():
     (19, "link_15.0_tip"), # thumb
 ])
 class TestRobotModel:
+    def test_end_effector_state(self, request, setup_dict, ee_link_idx, ee_link_name):
+        robot_model = setup_dict["robot_model"]
+        test_case = setup_dict["test_case"]
+        num_dofs = setup_dict["num_dofs"]
+
+        test_angles, test_velocities = (
+            test_case["joint_angles"],
+            test_case["joint_velocities"],
+        )
+
+        for i in range(num_dofs):
+            p.resetJointState(
+                bodyUniqueId=robot_id,
+                jointIndex=i,
+                targetValue=test_angles[i],
+                targetVelocity=test_velocities[i],
+                physicsClientId=pc_id
+            )
+        bullet_ee_state = p.getLinkState(robot_id, ee_link_idx, physicsClientId = pc_id)
+
+        model_ee_state = robot_model.compute_forward_kinematics(
+            torch.Tensor(test_angles).reshape(1, num_dofs), ee_link_name
+        )
+
+        assert np.allclose(
+            model_ee_state[0].detach().numpy(),
+            np.asarray(bullet_ee_state[0]),
+            atol=1e-7,
+        )
+        assert np.allclose(
+            model_ee_state[1].detach().numpy(),
+            np.asarray(bullet_ee_state[1]),
+            atol=1e-7,
+        )
+
     def test_ee_jacobian(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
@@ -149,6 +184,7 @@ class TestRobotModel:
             model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
         )
 
+    """
     def test_mass_computation(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
@@ -175,41 +211,6 @@ class TestRobotModel:
 
         assert np.allclose(
             inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
-        )
-
-    def test_end_effector_state(self, request, setup_dict, ee_link_idx, ee_link_name):
-        robot_model = setup_dict["robot_model"]
-        test_case = setup_dict["test_case"]
-        num_dofs = setup_dict["num_dofs"]
-
-        test_angles, test_velocities = (
-            test_case["joint_angles"],
-            test_case["joint_velocities"],
-        )
-
-        for i in range(7):
-            p.resetJointState(
-                bodyUniqueId=robot_id,
-                jointIndex=i,
-                targetValue=test_angles[i],
-                targetVelocity=test_velocities[i],
-                physicsClientId=pc_id
-            )
-        bullet_ee_state = p.getLinkState(robot_id, ee_link_idx, physicsClientId = pc_id)
-
-        model_ee_state = robot_model.compute_forward_kinematics(
-            torch.Tensor(test_angles).reshape(1, num_dofs), ee_link_name
-        )
-
-        assert np.allclose(
-            model_ee_state[0].detach().numpy(),
-            np.asarray(bullet_ee_state[0]),
-            atol=1e-7,
-        )
-        assert np.allclose(
-            model_ee_state[1].detach().numpy(),
-            np.asarray(bullet_ee_state[1]),
-            atol=1e-7,
         )
 
     def test_inverse_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):
@@ -329,3 +330,4 @@ class TestRobotModel:
                 model_qdd, np.asarray(test_accelerations), atol=1e-7
             )  # if atol = 1e-3 it doesnt pass
         assert np.allclose(model_qdd, qdd, atol=1e-7)  # if atol = 1e-3 it doesnt pass
+    """

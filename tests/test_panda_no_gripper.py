@@ -7,7 +7,7 @@ import pytest
 
 import pybullet as p
 import diff_robot_data
-from differentiable_robot_model.differentiable_robot_model import DifferentiableFrankaPanda
+from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel, LearnableRigidBodyConfig
 
 robot_description_folder = diff_robot_data.__path__[0]
 
@@ -17,7 +17,6 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 
 rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
-dof = 7
 
 pc_id = p.connect(p.DIRECT)
 
@@ -30,11 +29,13 @@ robot_id = p.loadURDF(
 )
 
 p.setGravity(0, 0, -9.81, physicsClientId=pc_id)
-JOINT_DAMPING = 0.0
+JOINT_DAMPING = 0.5
+
+NUM_JOINTS = p.getNumJoints(robot_id)
 
 # need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
 # does use joint damping, but the inverse dynamics call does not use joint damping
-for link_idx in range(8):
+for link_idx in range(NUM_JOINTS):
     p.changeDynamics(
         robot_id,
         link_idx,
@@ -45,7 +46,6 @@ for link_idx in range(8):
     )
     p.changeDynamics(robot_id, link_idx, maxJointVelocity=200, physicsClientId=pc_id)
 
-
 def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
     limits_per_joint = robot_model.get_joint_limits()
     joint_lower_bounds = [joint["lower"] for joint in limits_per_joint]
@@ -55,7 +55,7 @@ def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
     joint_velocities = []
     joint_accelerations = []
 
-    for i in range(dof):
+    for i in range(len(limits_per_joint)):
         joint_angles.append(
             np.random.uniform(low=joint_lower_bounds[i], high=joint_upper_bounds[i])
         )
@@ -86,24 +86,6 @@ def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
         "joint_accelerations": joint_accelerations,
     }
 
-
-def generate_test_cases(setup_dict):
-    robot_model = setup_dict["robot_model"]
-    num_test_cases = 3
-    test_cases = []
-
-    for i in range(num_test_cases):
-        test_cases.append(sample_test_case(robot_model, zero_vel=True, zero_acc=True))
-
-    for i in range(num_test_cases):
-        test_cases.append(sample_test_case(robot_model, zero_vel=False, zero_acc=True))
-
-    for i in range(num_test_cases):
-        test_cases.append(sample_test_case(robot_model, zero_vel=False, zero_acc=False))
-
-    return test_cases
-
-
 @pytest.fixture
 def setup_dict():
     """
@@ -119,54 +101,32 @@ def setup_dict():
     np.random.seed(1)
     torch.manual_seed(0)
 
-    robot_model = DifferentiableFrankaPanda()
+    # Load configuration
+    robot_model = DifferentiableRobotModel(urdf_path, LearnableRigidBodyConfig(), "differentiable_allegro_hand")
     test_case = sample_test_case(robot_model)
 
-    return {"robot_model": robot_model, "test_case": test_case}
+    return {
+        "robot_model": robot_model, 
+        "test_case": test_case,
+        "num_dofs": len(robot_model.get_joint_limits()),
+    }
 
 
+@pytest.mark.parametrize("ee_link_idx, ee_link_name", [
+    (7, "panda_virtual_ee_link"), 
+])
 class TestRobotModel:
-    def test_ee_jacobian(self, request, setup_dict):
+    def test_end_effector_state(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
-        ee_id = 7
+        num_dofs = setup_dict["num_dofs"]
 
         test_angles, test_velocities = (
             test_case["joint_angles"],
             test_case["joint_velocities"],
         )
 
-        model_jac_lin, model_jac_ang = robot_model.compute_endeffector_jacobian(
-            torch.Tensor(test_angles).reshape(1, dof), "panda_virtual_ee_link"
-        )
-
-        bullet_jac_lin, bullet_jac_ang = p.calculateJacobian(
-            bodyUniqueId=robot_id,
-            linkIndex=ee_id,
-            localPosition=[0, 0, 0],
-            objPositions=test_angles,
-            objVelocities=test_velocities,
-            objAccelerations=[0] * dof,
-            physicsClientId=pc_id
-        )
-        assert np.allclose(
-            model_jac_lin.detach().numpy(), np.asarray(bullet_jac_lin), atol=1e-7
-        )
-        assert np.allclose(
-            model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
-        )
-
-    def test_end_effector_state(self, request, setup_dict):
-
-        robot_model = setup_dict["robot_model"]
-        test_case = setup_dict["test_case"]
-        ee_id = 7
-
-        test_angles, test_velocities = (
-            test_case["joint_angles"],
-            test_case["joint_velocities"],
-        )
-        for i in range(dof):
+        for i in range(num_dofs):
             p.resetJointState(
                 bodyUniqueId=robot_id,
                 jointIndex=i,
@@ -174,10 +134,10 @@ class TestRobotModel:
                 targetVelocity=test_velocities[i],
                 physicsClientId=pc_id
             )
-        bullet_ee_state = p.getLinkState(robot_id, ee_id, physicsClientId=pc_id)
+        bullet_ee_state = p.getLinkState(robot_id, ee_link_idx, physicsClientId = pc_id)
 
         model_ee_state = robot_model.compute_forward_kinematics(
-            torch.Tensor(test_angles).reshape(1, dof), "panda_virtual_ee_link"
+            torch.Tensor(test_angles).reshape(1, num_dofs), ee_link_name
         )
 
         assert np.allclose(
@@ -191,16 +151,46 @@ class TestRobotModel:
             atol=1e-7,
         )
 
-    def test_inverse_dynamics(self, request, setup_dict):
-
+    def test_ee_jacobian(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
+        num_dofs = setup_dict["num_dofs"]
 
         test_angles, test_velocities = (
             test_case["joint_angles"],
             test_case["joint_velocities"],
         )
-        test_accelerations = test_case["joint_accelerations"]
+
+        model_jac_lin, model_jac_ang = robot_model.compute_endeffector_jacobian(
+            torch.Tensor(test_angles).reshape(1, num_dofs), ee_link_name
+        )
+
+        bullet_jac_lin, bullet_jac_ang = p.calculateJacobian(
+            bodyUniqueId=robot_id,
+            linkIndex=ee_link_idx,
+            localPosition=[0, 0, 0],
+            objPositions=test_angles,
+            objVelocities=test_velocities,
+            objAccelerations=[0] * num_dofs,
+            physicsClientId=pc_id
+        )
+        assert np.allclose(
+            model_jac_lin.detach().numpy(), np.asarray(bullet_jac_lin), atol=1e-7
+        )
+        assert np.allclose(
+            model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
+        )
+
+    """
+    def test_mass_computation(self, request, setup_dict, ee_link_idx, ee_link_name):
+        robot_model = setup_dict["robot_model"]
+        test_case = setup_dict["test_case"]
+        num_dofs = setup_dict["num_dofs"]
+
+        test_angles, test_velocities = (
+            test_case["joint_angles"],
+            test_case["joint_velocities"],
+        )
 
         for i in range(7):
             p.resetJointState(
@@ -211,21 +201,50 @@ class TestRobotModel:
                 physicsClientId=pc_id
             )
 
-        bullet_torques = p.calculateInverseDynamics(
-            robot_id, test_angles, test_velocities, test_accelerations, physicsClientId=pc_id
-        )
-        model_torques = robot_model.compute_inverse_dynamics(
-            torch.Tensor(test_angles).reshape(1, dof),
-            torch.Tensor(test_velocities).reshape(1, dof),
-            torch.Tensor(test_accelerations).reshape(1, dof),
-            include_gravity=True,
+        bullet_mass = np.array(p.calculateMassMatrix(robot_id, test_angles,physicsClientId = pc_id))
+        inertia_mat = robot_model.compute_lagrangian_inertia_matrix(
+            torch.Tensor(test_angles).reshape(1, num_dofs)
         )
 
+        assert np.allclose(
+            inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
+        )
+
+    def test_inverse_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):
+        robot_model = setup_dict["robot_model"]
+        test_case = setup_dict["test_case"]
+        num_dofs = setup_dict["num_dofs"]
+
+        test_angles, test_velocities = (
+            test_case["joint_angles"],
+            test_case["joint_velocities"],
+        )
+        test_accelerations = test_case["joint_accelerations"]
+
+        for i in range(num_dofs):
+            p.resetJointState(
+                bodyUniqueId=robot_id,
+                jointIndex=i,
+                targetValue=test_angles[i],
+                targetVelocity=test_velocities[i],
+                physicsClientId=pc_id
+            )
+
+        bullet_torques = p.calculateInverseDynamics(
+            robot_id, test_angles, test_velocities, test_accelerations, physicsClientId = pc_id
+        )
+
+        model_torques = robot_model.compute_inverse_dynamics(
+            torch.Tensor(test_angles).reshape(1, num_dofs),
+            torch.Tensor(test_velocities).reshape(1, num_dofs),
+            torch.Tensor(test_accelerations).reshape(1, num_dofs),
+            include_gravity=True,
+        )
         if JOINT_DAMPING != 0.0:
             # if we have non-zero joint damping, we'll have to subtract the damping term from our predicted torques,
             # because pybullet does not include damping/viscous friction in their inverse dynamics call
-            damping_const = torch.zeros(1, robot_model._n_dofs)
-            qd = torch.Tensor(test_velocities).reshape(1, dof)
+            damping_const = torch.zeros(1, num_dofs)
+            qd = torch.Tensor(test_velocities).reshape(1, num_dofs)
             for i in range(robot_model._n_dofs):
                 idx = robot_model._controlled_joints[i]
                 damping_const[:, i] = robot_model._bodies[idx].get_joint_damping_const()
@@ -238,56 +257,29 @@ class TestRobotModel:
             atol=1e-7,
         )
 
-    def test_mass_computation(self, request, setup_dict):
+    def test_forward_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
-        test_angles, test_velocities = (
-            test_case["joint_angles"],
-            test_case["joint_velocities"],
-        )
+        num_dofs = setup_dict["num_dofs"]
 
-        controlled_joints = robot_model._controlled_joints
-
-        for i, joint_idx in enumerate(controlled_joints):
-            p.resetJointState(
-                bodyUniqueId=robot_id,
-                jointIndex=joint_idx,
-                targetValue=test_angles[i],
-                targetVelocity=test_velocities[i],
-                physicsClientId=pc_id
-            )
-
-        bullet_mass = np.array(p.calculateMassMatrix(robot_id, test_angles, physicsClientId=pc_id))
-        inertia_mat = robot_model.compute_lagrangian_inertia_matrix(
-            torch.Tensor(test_angles).reshape(1, dof)
-        )
-
-        assert np.allclose(
-            inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
-        )
-
-    def test_forward_dynamics(self, request, setup_dict):
-        robot_model = setup_dict["robot_model"]
-        test_case = setup_dict["test_case"]
         test_angles, test_velocities = (
             test_case["joint_angles"],
             test_case["joint_velocities"],
         )
         test_accelerations = test_case["joint_accelerations"]
         dt = 1.0 / 240.0
-        n_dofs = dof
-        controlled_joints = range(n_dofs)
+        controlled_joints = range(num_dofs)
         # activating torque control
         p.setJointMotorControlArray(
             bodyIndex=robot_id,
             jointIndices=controlled_joints,
             controlMode=p.VELOCITY_CONTROL,
-            forces=np.zeros(n_dofs),
+            forces=np.zeros(num_dofs),
             physicsClientId=pc_id
         )
 
         # set simulation to be in state test_angles/test_velocities
-        for i in range(dof):
+        for i in range(num_dofs):
             p.resetJointState(
                 bodyUniqueId=robot_id,
                 jointIndex=i,
@@ -299,8 +291,7 @@ class TestRobotModel:
         # let's get the torque that achieves the test_accelerations from the current state
         bullet_tau = np.array(
             p.calculateInverseDynamics(
-                robot_id, test_angles, test_velocities, test_accelerations,
-                physicsClientId=pc_id
+                robot_id, test_angles, test_velocities, test_accelerations, physicsClientId=pc_id
             )
         )
 
@@ -314,16 +305,16 @@ class TestRobotModel:
 
         p.stepSimulation(physicsClientId = pc_id)
 
-        cur_joint_states = p.getJointStates(robot_id, controlled_joints, physicsClientId = pc_id)
-        q = [cur_joint_states[i][0] for i in range(n_dofs)]
-        qd = [cur_joint_states[i][1] for i in range(n_dofs)]
+        cur_joint_states = p.getJointStates(robot_id, controlled_joints)
+        q = [cur_joint_states[i][0] for i in range(num_dofs)]
+        qd = [cur_joint_states[i][1] for i in range(num_dofs)]
 
         qdd = (np.array(qd) - np.array(test_velocities)) / dt
 
         model_qdd = robot_model.compute_forward_dynamics(
-            torch.Tensor(test_angles).reshape(1, dof),
-            torch.Tensor(test_velocities).reshape(1, dof),
-            torch.Tensor(bullet_tau).reshape(1, dof),
+            torch.Tensor(test_angles).reshape(1, num_dofs),
+            torch.Tensor(test_velocities).reshape(1, num_dofs),
+            torch.Tensor(bullet_tau).reshape(1, num_dofs),
             include_gravity=True,
         )
 
@@ -336,3 +327,4 @@ class TestRobotModel:
                 model_qdd, np.asarray(test_accelerations), atol=1e-7
             )  # if atol = 1e-3 it doesnt pass
         assert np.allclose(model_qdd, qdd, atol=1e-7)  # if atol = 1e-3 it doesnt pass
+    """
