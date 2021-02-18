@@ -4,12 +4,11 @@ import os
 
 import torch
 
-
-from .utils import cross_product
 from .differentiable_rigid_body import (
     DifferentiableRigidBody,
     LearnableRigidBody,
 )
+from .spatial_vector_algebra import SpatialMotionVec, SpatialForceVec
 from .urdf_utils import URDFRobotModel
 
 import diff_robot_data
@@ -92,12 +91,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         # we assume a non-moving base
         parent_body = self._bodies[0]
-        parent_body.lin_vel = torch.zeros((batch_size, 3), dtype=q.dtype).to(
-            self._device
-        )
-        parent_body.ang_vel = torch.zeros((batch_size, 3), dtype=q.dtype).to(
-            self._device
-        )
+        parent_body.body_vel = SpatialMotionVec(torch.zeros((batch_size, 3)), torch.zeros((batch_size, 3)))
 
         # propagate the new joint state through the kinematic chain to update bodies position/velocities
         for i in range(1, len(self._bodies)):
@@ -115,26 +109,12 @@ class DifferentiableRobotModel(torch.nn.Module):
             # the position and orientation of the body in world coordinates, with origin at the joint
             body.pose = parent_body.pose.multiply_transform(childToParentT)
 
-            # we rotate the angular velocity of the parent's link into the child frame
-            new_ang_vel = (
-                parentToChildT.rotation() @ parent_body.ang_vel.unsqueeze(2)
-            ).squeeze(2)
+            # we rotate the velocity of the parent's body into the child frame
+            new_vel = parent_body.body_vel.transform(parentToChildT)
 
             # this body's angular velocity is combination of the velocity experienced at it's parent's link
             # + the velocity created by this body's joint
-            body.ang_vel = body.joint_ang_vel + new_ang_vel
-
-            # transform linear velocity of parent link frame to this body's link fram
-            new_lin_vel = (
-                parentToChildT.trans_cross_rot() @ parent_body.ang_vel.unsqueeze(2)
-            ).squeeze(2) + (
-                parentToChildT.rotation() @ parent_body.lin_vel.unsqueeze(2)
-            ).squeeze(
-                2
-            )
-
-            # combining linear velocity of parent link with linear velocity induced by this links joint
-            body.lin_vel = body.joint_lin_vel + new_lin_vel
+            body.body_vel = body.joint_vel.add_motion_vec(new_vel)
         return
 
     def compute_forward_kinematics(
@@ -159,7 +139,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return pos, rot
 
     def iterative_newton_euler(
-        self, base_lin_acc: torch.Tensor, base_ang_acc: torch.Tensor
+        self, base_acc
     ) -> None:
         r"""
 
@@ -170,8 +150,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         """
 
         body = self._bodies[0]
-        body.lin_acc = base_lin_acc
-        body.ang_acc = base_ang_acc
+        body.body_acc = base_acc
 
         for i in range(1, len(self._bodies)):
             body = self._bodies[i]
@@ -182,27 +161,11 @@ class DifferentiableRobotModel(torch.nn.Module):
             # get the inverse of the current joint pose
             inv_pose = body.joint_pose.inverse()
 
-            # new wd
-            new_ang_acc = (
-                inv_pose.rotation() @ parent_body.ang_acc.unsqueeze(2)
-            ).squeeze(2) + body.joint_ang_acc
-            # new vd
-            new_lin_acc = (
-                (inv_pose.trans_cross_rot() @ parent_body.ang_acc.unsqueeze(2)).squeeze(
-                    2
-                )
-                + (inv_pose.rotation() @ parent_body.lin_acc.unsqueeze(2)).squeeze(2)
-                + body.joint_lin_acc
-            )
-
+            # transform spatial acceleration of parent body into this body's frame
+            acc_parent_body = parent_body.body_acc.transform(inv_pose)
             # body velocity cross joint vel
-            new_w = cross_product(body.ang_vel, body.joint_ang_vel)
-            new_v = cross_product(
-                body.ang_vel, body.joint_lin_vel
-            ) + cross_product(body.lin_vel, body.joint_ang_vel)
-
-            body.lin_acc = new_lin_acc + new_v
-            body.ang_acc = new_ang_acc + new_w
+            tmp = body.body_vel.cross_motion_vec(body.joint_vel)
+            body.body_acc = acc_parent_body.add_motion_vec(body.joint_acc).add_motion_vec(tmp)
 
         child_body = self._bodies[-1]
 
@@ -212,32 +175,13 @@ class DifferentiableRobotModel(torch.nn.Module):
             joint_pose = child_body.joint_pose
 
             # pose x children_force
-            child_ang_force = (
-                joint_pose.trans_cross_rot() @ child_body.lin_force.unsqueeze(2)
-            ).squeeze(2) + (
-                joint_pose.rotation() @ child_body.ang_force.unsqueeze(2)
-            ).squeeze(
-                2
-            )
-            child_lin_force = (
-                joint_pose.rotation() @ child_body.lin_force.unsqueeze(2)
-            ).squeeze(2)
+            child_body_force = child_body.force.transform(joint_pose)
 
-            [IcAcc_lin, IcAcc_ang] = body.multiply_inertia_with_motion_vec(
-                body.lin_acc, body.ang_acc
-            )
-            [IcVel_lin, IcVel_ang] = body.multiply_inertia_with_motion_vec(
-                body.lin_vel, body.ang_vel
-            )
+            icxacc = body.inertia.multiply_motion_vec(body.body_acc)
+            icxvel = body.inertia.multiply_motion_vec(body.body_vel)
+            tmp_force = body.body_vel.cross_force_vec(icxvel)
 
-            # body vel x IcVel
-            tmp_ang_force = cross_product(
-                body.ang_vel, IcVel_ang
-            ) + cross_product(body.lin_vel, IcVel_lin)
-            tmp_lin_force = cross_product(body.ang_vel, IcVel_lin)
-
-            body.lin_force = IcAcc_lin + tmp_lin_force + child_lin_force
-            body.ang_force = IcAcc_ang + tmp_ang_force + child_ang_force
+            body.force = icxacc.add_force_vec(tmp_force).add_force_vec(child_body_force)
             child_body = body
         return
 
@@ -284,7 +228,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             base_lin_acc[:, 2] = 9.81 * torch.ones(batch_size)
 
         # we propagate the base forces
-        self.iterative_newton_euler(base_lin_acc, base_ang_acc)
+        self.iterative_newton_euler(SpatialMotionVec(base_lin_acc, base_ang_acc))
 
         # we extract the relevant forces for all controlled joints
         for i in range(qdd_des.shape[1]):
@@ -292,7 +236,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             rot_axis = torch.zeros((batch_size, 3)).to(self._device)
             rot_axis[:, 2] = torch.ones(batch_size).to(self._device)
             force[:, i] += (
-                self._bodies[idx].ang_force.unsqueeze(1) @ rot_axis.unsqueeze(2)
+                self._bodies[idx].force.ang.unsqueeze(1) @ rot_axis.unsqueeze(2)
             ).squeeze()
 
         # we add forces to counteract damping
@@ -360,12 +304,45 @@ class DifferentiableRobotModel(torch.nn.Module):
         )
         return H
 
-    def compute_forward_dynamics(
+    def compute_forward_dynamics_old(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
         f: torch.Tensor,
         include_gravity: Optional[bool] = True,
+    ) -> torch.Tensor:
+        r"""
+        Computes next qdd by solving the Euler-Lagrange equation
+        qdd = H^{-1} (F - Cv - G - damping_term)
+
+        Args:
+            q: joint angles [batch_size x n_dofs]
+            qd: joint velocities [batch_size x n_dofs]
+            f: forces to be applied [batch_size x n_dofs]
+            include_gravity: set to False if your robot has gravity compensation
+
+        Returns: accelerations that are the result of applying forces f in state q, qd
+
+        """
+
+        nle = self.compute_non_linear_effects(
+            q=q, qd=qd, include_gravity=include_gravity
+        )
+        inertia_mat = self.compute_lagrangian_inertia_matrix(
+            q=q, include_gravity=include_gravity
+        )
+
+        # Solve H qdd = F - Cv - G - damping_term
+        qdd = torch.solve(f.unsqueeze(2) - nle.unsqueeze(2), inertia_mat)[0].squeeze(2)
+
+        return qdd
+
+    def compute_forward_dynamics(
+            self,
+            q: torch.Tensor,
+            qd: torch.Tensor,
+            f: torch.Tensor,
+            include_gravity: Optional[bool] = True,
     ) -> torch.Tensor:
         r"""
         Computes next qdd by solving the Euler-Lagrange equation
