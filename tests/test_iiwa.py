@@ -45,7 +45,6 @@ for link_idx in range(8):
     p.changeDynamics(robot_id, link_idx, maxJointVelocity=200, physicsClientId=pc_id)
 
 
-
 def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
     limits_per_joint = robot_model.get_joint_limits()
     joint_lower_bounds = [joint["lower"] for joint in limits_per_joint]
@@ -134,37 +133,6 @@ def setup_dict():
 
 
 class TestRobotModel:
-    def test_ee_jacobian(self, request, setup_dict):
-        robot_model = setup_dict["robot_model"]
-        test_case = setup_dict["test_case"]
-        ee_id = 7
-
-        test_angles, test_velocities = (
-            test_case["joint_angles"],
-            test_case["joint_velocities"],
-        )
-
-        model_jac_lin, model_jac_ang = robot_model.compute_endeffector_jacobian(
-            torch.Tensor(test_angles).reshape(1, 7), "iiwa_link_ee"
-        )
-
-        bullet_jac_lin, bullet_jac_ang = p.calculateJacobian(
-            bodyUniqueId=robot_id,
-            linkIndex=ee_id,
-            localPosition=[0, 0, 0],
-            objPositions=test_angles,
-            objVelocities=test_velocities,
-            objAccelerations=[0] * 7,
-            physicsClientId=pc_id
-        )
-        assert np.allclose(
-            model_jac_lin.detach().numpy(), np.asarray(bullet_jac_lin), atol=1e-7
-        )
-        assert np.allclose(
-            model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
-        )
-
-
     def test_end_effector_state(self, request, setup_dict):
 
         robot_model = setup_dict["robot_model"]
@@ -198,6 +166,36 @@ class TestRobotModel:
             model_ee_state[1].detach().numpy(),
             np.asarray(bullet_ee_state[1]),
             atol=1e-7,
+        )
+
+    def test_ee_jacobian(self, request, setup_dict):
+        robot_model = setup_dict["robot_model"]
+        test_case = setup_dict["test_case"]
+        ee_id = 7
+
+        test_angles, test_velocities = (
+            test_case["joint_angles"],
+            test_case["joint_velocities"],
+        )
+
+        model_jac_lin, model_jac_ang = robot_model.compute_endeffector_jacobian(
+            torch.Tensor(test_angles).reshape(1, 7), "iiwa_link_ee"
+        )
+
+        bullet_jac_lin, bullet_jac_ang = p.calculateJacobian(
+            bodyUniqueId=robot_id,
+            linkIndex=ee_id,
+            localPosition=[0, 0, 0],
+            objPositions=test_angles,
+            objVelocities=test_velocities,
+            objAccelerations=[0] * 7,
+            physicsClientId=pc_id
+        )
+        assert np.allclose(
+            model_jac_lin.detach().numpy(), np.asarray(bullet_jac_lin), atol=1e-7
+        )
+        assert np.allclose(
+            model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
         )
 
     def test_inverse_dynamics(self, request, setup_dict):
