@@ -138,15 +138,11 @@ class DifferentiableRobotModel(torch.nn.Module):
         rot = pose.get_quaternion()
         return pos, rot
 
-    def iterative_newton_euler(
-        self, base_acc
-    ) -> None:
+    def iterative_newton_euler(self, base_acc: SpatialMotionVec) -> None:
         r"""
 
         Args:
-            base_lin_acc: linear acceleration of base (for fixed manipulators this is zero)
-            base_ang_acc: angular acceleration of base (for fixed manipulators this is zero)
-
+            base_acc: spatial acceleration of base (for fixed manipulators this is zero)
         """
 
         body = self._bodies[0]
