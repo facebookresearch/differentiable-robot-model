@@ -91,7 +91,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         # we assume a non-moving base
         parent_body = self._bodies[0]
-        parent_body.body_vel = SpatialMotionVec(torch.zeros((batch_size, 3)), torch.zeros((batch_size, 3)))
+        parent_body.vel = SpatialMotionVec(torch.zeros((batch_size, 3)), torch.zeros((batch_size, 3)))
 
         # propagate the new joint state through the kinematic chain to update bodies position/velocities
         for i in range(1, len(self._bodies)):
@@ -110,11 +110,11 @@ class DifferentiableRobotModel(torch.nn.Module):
             body.pose = parent_body.pose.multiply_transform(childToParentT)
 
             # we rotate the velocity of the parent's body into the child frame
-            new_vel = parent_body.body_vel.transform(parentToChildT)
+            new_vel = parent_body.vel.transform(parentToChildT)
 
             # this body's angular velocity is combination of the velocity experienced at it's parent's link
             # + the velocity created by this body's joint
-            body.body_vel = body.joint_vel.add_motion_vec(new_vel)
+            body.vel = body.joint_vel.add_motion_vec(new_vel)
         return
 
     def compute_forward_kinematics(
@@ -146,7 +146,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         """
 
         body = self._bodies[0]
-        body.body_acc = base_acc
+        body.acc = base_acc
 
         # forward pass to propagate accelerations from root to end-effector link
         for i in range(1, len(self._bodies)):
@@ -159,10 +159,10 @@ class DifferentiableRobotModel(torch.nn.Module):
             inv_pose = body.joint_pose.inverse()
 
             # transform spatial acceleration of parent body into this body's frame
-            acc_parent_body = parent_body.body_acc.transform(inv_pose)
+            acc_parent_body = parent_body.acc.transform(inv_pose)
             # body velocity cross joint vel
-            tmp = body.body_vel.cross_motion_vec(body.joint_vel)
-            body.body_acc = acc_parent_body.add_motion_vec(body.joint_acc).add_motion_vec(tmp)
+            tmp = body.vel.cross_motion_vec(body.joint_vel)
+            body.acc = acc_parent_body.add_motion_vec(body.joint_acc).add_motion_vec(tmp)
 
         child_body = self._bodies[-1]
 
@@ -174,9 +174,9 @@ class DifferentiableRobotModel(torch.nn.Module):
             # pose x children_force
             child_body_force = child_body.force.transform(joint_pose)
 
-            icxacc = body.inertia.multiply_motion_vec(body.body_acc)
-            icxvel = body.inertia.multiply_motion_vec(body.body_vel)
-            tmp_force = body.body_vel.cross_force_vec(icxvel)
+            icxacc = body.inertia.multiply_motion_vec(body.acc)
+            icxvel = body.inertia.multiply_motion_vec(body.vel)
+            tmp_force = body.vel.cross_force_vec(icxvel)
 
             body.force = icxacc.add_force_vec(tmp_force).add_force_vec(child_body_force)
             child_body = body

@@ -51,8 +51,8 @@ class DifferentiableRigidBody(torch.nn.Module):
 
         self.pose = CoordinateTransform()
 
-        self.body_vel = SpatialMotionVec()
-        self.body_acc = SpatialMotionVec()
+        self.vel = SpatialMotionVec()
+        self.acc = SpatialMotionVec()
 
         self.force = SpatialForceVec()
 
