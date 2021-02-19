@@ -152,6 +152,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         body = self._bodies[0]
         body.body_acc = base_acc
 
+        # forward pass to propagate accelerations from root to end-effector link
         for i in range(1, len(self._bodies)):
             body = self._bodies[i]
             parent_name = self._urdf_model.get_name_of_parent_body(body.name)
@@ -169,7 +170,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         child_body = self._bodies[-1]
 
-        # after recursion is done, we propagate forces back up (from endeffector link to base)
+        # backward pass to propagate forces up (from endeffector to root body)
         for i in range(len(self._bodies) - 2, 0, -1):
             body = self._bodies[i]
             joint_pose = child_body.joint_pose

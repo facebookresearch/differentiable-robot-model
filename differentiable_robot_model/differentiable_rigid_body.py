@@ -9,7 +9,7 @@ from .spatial_vector_algebra import (
 )
 
 from .spatial_vector_algebra import SpatialForceVec, SpatialMotionVec
-from .spatial_vector_algebra import DifferentiableSpatialRigidBodyInertia
+from .spatial_vector_algebra import DifferentiableSpatialRigidBodyInertia, LearnableSpatialRigidBodyInertia
 
 import hydra
 
@@ -106,26 +106,7 @@ class LearnableRigidBody(DifferentiableRigidBody):
 
         super().__init__(rigid_body_params=gt_rigid_body_params, device=device)
 
-        # we overwrite dynamics parameters
-        if "mass" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.mass_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.mass_parametrization, device=device
-            )
-        else:
-            self.mass_fn = lambda: self.mass
-
-        if "com" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.com_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.com_parametrization, device=device
-            )
-        else:
-            self.com_fn = lambda: self.com
-
-        if "inertia_mat" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.inertia_mat_fn = hydra.utils.instantiate(learnable_rigid_body_config.inertia_parametrization)
-        else:
-            self.inertia_mat_fn = lambda: self.inertia_mat
-
+        self.inertia = LearnableSpatialRigidBodyInertia(learnable_rigid_body_config, gt_rigid_body_params)
         self.joint_damping = gt_rigid_body_params["joint_damping"]
 
         # kinematics parameters

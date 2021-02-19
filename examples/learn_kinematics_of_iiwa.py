@@ -9,6 +9,7 @@ from hydra.experimental import initialize_config_dir
 
 from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel, DifferentiableKUKAiiwa
 from differentiable_robot_model.data_generation_utils import generate_random_forward_kinematics_data
+import differentiable_robot_model
 import diff_robot_data
 
 torch.set_printoptions(precision=3, sci_mode=False)
@@ -17,7 +18,7 @@ np.random.seed(1)
 torch.manual_seed(0)
 
 
-abs_config_dir = os.path.abspath("conf")
+abs_config_dir=os.path.abspath(os.path.join(differentiable_robot_model.__path__[0], "../conf"))
 # we load a learnable robot model
 with initialize_config_dir(config_dir=abs_config_dir):
     # which parameters are learnable is specified in the config file

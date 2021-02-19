@@ -1,4 +1,5 @@
 import torch
+import hydra
 import math
 from . import utils
 from .utils import cross_product
@@ -86,6 +87,35 @@ class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
         ) + utils.cross_product(mcom.repeat(batch_size, 1), smv.lin)
 
         return SpatialForceVec(new_lin_force, new_ang_force)
+
+
+class LearnableSpatialRigidBodyInertia(DifferentiableSpatialRigidBodyInertia):
+    def __init__(self, learnable_rigid_body_config, rigid_body_params):
+        super().__init__(rigid_body_params)
+
+        # we overwrite dynamics parameters
+        if "mass" in learnable_rigid_body_config.learnable_dynamics_params:
+            self.mass_fn = hydra.utils.instantiate(
+                learnable_rigid_body_config.mass_parametrization
+            )
+        else:
+            self.mass_fn = lambda: self.mass
+
+        if "com" in learnable_rigid_body_config.learnable_dynamics_params:
+            self.com_fn = hydra.utils.instantiate(
+                learnable_rigid_body_config.com_parametrization
+            )
+        else:
+            self.com_fn = lambda: self.com
+
+        if "inertia_mat" in learnable_rigid_body_config.learnable_dynamics_params:
+            self.inertia_mat_fn = hydra.utils.instantiate(learnable_rigid_body_config.inertia_parametrization)
+        else:
+            self.inertia_mat_fn = lambda: self.inertia_mat
+
+    def _get_parameter_values(self):
+        return self.mass_fn(), self.com_fn(), self.inertia_mat_fn()
+
 
 def x_rot(angle):
     if len(angle.shape) == 0:
