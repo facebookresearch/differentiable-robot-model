@@ -1,8 +1,10 @@
+from __future__ import annotations
 import torch
 import hydra
 import math
 from . import utils
 from .utils import cross_product
+
 
 def x_rot(angle):
     if len(angle.shape) == 0:
@@ -126,30 +128,52 @@ class CoordinateTransform(object):
 
 class SpatialMotionVec(object):
 
-    def __init__(self, lin_motion=None, ang_motion=None):
-        if lin_motion is None:
-            self.lin = torch.zeros((1, 3))
-        else:
-            self.lin = lin_motion
-        if ang_motion is None:
-            self.ang = torch.zeros((1, 3))
-        else:
-            self.ang = ang_motion
+    def __init__(self,
+                 lin_motion: torch.Tensor = torch.zeros((1, 3)),
+                 ang_motion: torch.Tensor = torch.zeros((1, 3))
+                 ):
+        self.lin = lin_motion
+        self.ang = ang_motion
 
-    def add_motion_vec(self, smv):
+    def add_motion_vec(self, smv: SpatialMotionVec) -> SpatialMotionVec:
+        r"""
+        Args:
+            smv: spatial motion vector
+        Returns:
+            the sum of motion vectors
+        """
+
         return SpatialMotionVec(self.lin + smv.lin, self.ang + smv.ang)
 
-    def cross_motion_vec(self, smv):
+    def cross_motion_vec(self, smv: SpatialMotionVec) -> SpatialMotionVec:
+        r"""
+        Args:
+            smv: spatial motion vector
+        Returns:
+            the cross product between motion vectors
+        """
         new_ang = cross_product(self.ang, smv.ang)
         new_lin = cross_product(self.ang, smv.lin) + cross_product(self.lin, smv.ang)
         return SpatialMotionVec(new_lin, new_ang)
 
-    def cross_force_vec(self, sfv):
+    def cross_force_vec(self, sfv: SpatialForceVec) -> SpatialForceVec:
+        r"""
+        Args:
+            sfv: spatial force vector
+        Returns:
+            the cross product between motion (self) and force vector
+        """
         new_ang = cross_product(self.ang, sfv.ang) + cross_product(self.lin, sfv.lin)
         new_lin = cross_product(self.ang, sfv.lin)
         return SpatialForceVec(new_lin, new_ang)
 
-    def transform(self, transform):
+    def transform(self, transform: CoordinateTransform) -> SpatialMotionVec:
+        r"""
+        Args:
+            transform: a coordinate transform object
+        Returns:
+            the motion vector (self) transformed by the coordinate transform
+        """
         new_ang = (transform.rotation() @ self.ang.unsqueeze(2)).squeeze(2)
         new_lin = (transform.trans_cross_rot() @ self.ang.unsqueeze(2)).squeeze(2)
         new_lin += (transform.rotation() @ self.lin.unsqueeze(2)).squeeze(2)
@@ -157,20 +181,29 @@ class SpatialMotionVec(object):
 
 
 class SpatialForceVec(object):
-    def __init__(self, lin_force=None, ang_force=None):
-        if lin_force is None:
-            self.lin = torch.zeros((1, 3))
-        else:
-            self.lin = lin_force
-        if ang_force is None:
-            self.ang = torch.zeros((1, 3))
-        else:
-            self.ang = ang_force
+    def __init__(self,
+                 lin_force: torch.Tensor = torch.zeros((1, 3)),
+                 ang_force: torch.Tensor = torch.zeros((1, 3))
+                 ):
+        self.lin = lin_force
+        self.ang = ang_force
 
-    def add_force_vec(self, sfv):
+    def add_force_vec(self, sfv: SpatialForceVec) -> SpatialForceVec:
+        r"""
+        Args:
+            sfv: spatial force vector
+        Returns:
+            the sum of force vectors
+        """
         return SpatialForceVec(self.lin + sfv.lin, self.ang + sfv.ang)
 
-    def transform(self, transform):
+    def transform(self, transform: CoordinateTransform) -> SpatialForceVec:
+        r"""
+        Args:
+            transform: a coordinate transform object
+        Returns:
+            the force vector (self) transformed by the coordinate transform
+        """
         new_lin = (transform.rotation() @ self.lin.unsqueeze(2)).squeeze(2)
         new_ang = (transform.trans_cross_rot() @ self.lin.unsqueeze(2)).squeeze(2)
         new_ang += (transform.rotation() @ self.ang.unsqueeze(2)).squeeze(2)
