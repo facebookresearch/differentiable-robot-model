@@ -182,34 +182,6 @@ class TestRobotModel:
         )
 
     """
-    def test_mass_computation(self, request, setup_dict, ee_link_idx, ee_link_name):
-        robot_model = setup_dict["robot_model"]
-        test_case = setup_dict["test_case"]
-        num_dofs = setup_dict["num_dofs"]
-
-        test_angles, test_velocities = (
-            test_case["joint_angles"],
-            test_case["joint_velocities"],
-        )
-
-        for i in range(7):
-            p.resetJointState(
-                bodyUniqueId=robot_id,
-                jointIndex=i,
-                targetValue=test_angles[i],
-                targetVelocity=test_velocities[i],
-                physicsClientId=pc_id
-            )
-
-        bullet_mass = np.array(p.calculateMassMatrix(robot_id, test_angles,physicsClientId = pc_id))
-        inertia_mat = robot_model.compute_lagrangian_inertia_matrix(
-            torch.Tensor(test_angles).reshape(1, num_dofs)
-        )
-
-        assert np.allclose(
-            inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
-        )
-
     def test_inverse_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
@@ -255,6 +227,34 @@ class TestRobotModel:
             model_torques.detach().squeeze().numpy(),
             np.asarray(bullet_torques),
             atol=1e-7,
+        )
+
+    def test_mass_computation(self, request, setup_dict, ee_link_idx, ee_link_name):
+        robot_model = setup_dict["robot_model"]
+        test_case = setup_dict["test_case"]
+        num_dofs = setup_dict["num_dofs"]
+
+        test_angles, test_velocities = (
+            test_case["joint_angles"],
+            test_case["joint_velocities"],
+        )
+
+        for i in range(7):
+            p.resetJointState(
+                bodyUniqueId=robot_id,
+                jointIndex=i,
+                targetValue=test_angles[i],
+                targetVelocity=test_velocities[i],
+                physicsClientId=pc_id
+            )
+
+        bullet_mass = np.array(p.calculateMassMatrix(robot_id, test_angles,physicsClientId = pc_id))
+        inertia_mat = robot_model.compute_lagrangian_inertia_matrix(
+            torch.Tensor(test_angles).reshape(1, num_dofs)
+        )
+
+        assert np.allclose(
+            inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
         )
 
     def test_forward_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):

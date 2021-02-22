@@ -1,13 +1,15 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 import torch
-from . import utils
-from .coordinate_transform import (
+from .spatial_vector_algebra import (
     CoordinateTransform,
     z_rot,
     y_rot,
     x_rot,
 )
+
+from .spatial_vector_algebra import SpatialForceVec, SpatialMotionVec
+from .spatial_vector_algebra import DifferentiableSpatialRigidBodyInertia, LearnableSpatialRigidBodyInertia
 
 import hydra
 
@@ -26,10 +28,8 @@ class DifferentiableRigidBody(torch.nn.Module):
         self.name = rigid_body_params["link_name"]
 
         # dynamics parameters
-        self.mass = rigid_body_params["mass"]
-        self.com = rigid_body_params["com"]
-        self.inertia_mat = rigid_body_params["inertia_mat"]
         self.joint_damping = rigid_body_params["joint_damping"]
+        self.inertia = DifferentiableSpatialRigidBodyInertia(rigid_body_params)
 
         # kinematics parameters
         self.trans = rigid_body_params["trans"]
@@ -43,40 +43,26 @@ class DifferentiableRigidBody(torch.nn.Module):
         self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
 
         # local velocities and accelerations (w.r.t. joint coordinate frame):
-        # in spatial vector terminology: linear velocity v
-        self.joint_lin_vel = torch.zeros((1, 3))  # .to(self._device)
-        # in spatial vector terminology: angular velocity w
-        self.joint_ang_vel = torch.zeros((1, 3))  # .to(self._device)
-        # in spatial vector terminology: linear acceleration vd
-        self.joint_lin_acc = torch.zeros((1, 3))  # .to(self._device)
-        # in spatial vector terminology: angular acceleration wd
-        self.joint_ang_acc = torch.zeros((1, 3))  # .to(self._device)
+        self.joint_vel = SpatialMotionVec()
+        self.joint_acc = SpatialMotionVec()
 
         self.update_joint_state(torch.zeros(1, 1), torch.zeros(1, 1))
         self.update_joint_acc(torch.zeros(1, 1))
 
         self.pose = CoordinateTransform()
 
-        # I have different vectors for angular/linear motion/force, but they usually always appear as a pair
-        # meaning we usually always compute both angular/linear components.
-        # Maybe worthwile thinking of a structure for this - in math notation we would use the notion of spatial vectors
-        # drake uses some form of spatial vector implementation
-        self.lin_vel = torch.zeros((1, 3)).to(self._device)
-        self.ang_vel = torch.zeros((1, 3)).to(self._device)
-        self.lin_acc = torch.zeros((1, 3)).to(self._device)
-        self.ang_acc = torch.zeros((1, 3)).to(self._device)
+        self.vel = SpatialMotionVec()
+        self.acc = SpatialMotionVec()
 
-        # in spatial vector terminology this is the "linear force f"
-        self.lin_force = torch.zeros((1, 3)).to(self._device)
-        # in spatial vector terminology this is the "couple n"
-        self.ang_force = torch.zeros((1, 3)).to(self._device)
+        self.force = SpatialForceVec()
 
         return
 
     def update_joint_state(self, q, qd):
         batch_size = q.shape[0]
 
-        self.joint_ang_vel = qd @ self.joint_axis
+        joint_ang_vel = qd @ self.joint_axis
+        self.joint_vel = SpatialMotionVec(torch.zeros_like(joint_ang_vel), joint_ang_vel)
 
         roll = self.rot_angles[0]
         pitch = self.rot_angles[1]
@@ -98,32 +84,9 @@ class DifferentiableRigidBody(torch.nn.Module):
 
     def update_joint_acc(self, qdd):
         # local z axis (w.r.t. joint coordinate frame):
-        self.joint_ang_acc = qdd @ self.joint_axis
+        joint_ang_acc = qdd @ self.joint_axis
+        self.joint_acc = SpatialMotionVec(torch.zeros_like(joint_ang_acc), joint_ang_acc)
         return
-
-    def multiply_inertia_with_motion_vec(self, lin, ang):
-
-        mass, com, inertia_mat = self._get_dynamics_parameters_values()
-
-        mcom = com * mass
-        com_skew_symm_mat = utils.vector3_to_skew_symm_matrix(com)
-        inertia = inertia_mat + mass * (
-            com_skew_symm_mat @ com_skew_symm_mat.transpose(-2, -1)
-        )
-
-        batch_size = lin.shape[0]
-
-        new_lin_force = mass * lin - utils.cross_product(
-            mcom.repeat(batch_size, 1), ang
-        )
-        new_ang_force = (inertia.repeat(batch_size, 1, 1) @ ang.unsqueeze(2)).squeeze(
-            2
-        ) + utils.cross_product(mcom.repeat(batch_size, 1), lin)
-
-        return new_lin_force, new_ang_force
-
-    def _get_dynamics_parameters_values(self):
-        return self.mass, self.com, self.inertia_mat
 
     def get_joint_limits(self):
         return self.joint_limits
@@ -143,26 +106,7 @@ class LearnableRigidBody(DifferentiableRigidBody):
 
         super().__init__(rigid_body_params=gt_rigid_body_params, device=device)
 
-        # we overwrite dynamics parameters
-        if "mass" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.mass_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.mass_parametrization, device=device
-            )
-        else:
-            self.mass_fn = lambda: self.mass
-
-        if "com" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.com_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.com_parametrization, device=device
-            )
-        else:
-            self.com_fn = lambda: self.com
-
-        if "inertia_mat" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.inertia_mat_fn = hydra.utils.instantiate(learnable_rigid_body_config.inertia_parametrization)
-        else:
-            self.inertia_mat_fn = lambda: self.inertia_mat
-
+        self.inertia = LearnableSpatialRigidBodyInertia(learnable_rigid_body_config, gt_rigid_body_params)
         self.joint_damping = gt_rigid_body_params["joint_damping"]
 
         # kinematics parameters
@@ -177,5 +121,3 @@ class LearnableRigidBody(DifferentiableRigidBody):
 
         return
 
-    def _get_dynamics_parameters_values(self):
-        return self.mass_fn(), self.com_fn(), self.inertia_mat_fn()

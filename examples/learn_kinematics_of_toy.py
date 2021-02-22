@@ -9,14 +9,17 @@ from hydra.experimental import initialize_config_dir
 
 from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel, DifferentiableTwoLinkRobot
 from differentiable_robot_model.data_generation_utils import generate_random_forward_kinematics_data
+import differentiable_robot_model
+import diff_robot_data
 
 torch.set_printoptions(precision=3, sci_mode=False)
+
 random.seed(0)
 np.random.seed(1)
 torch.manual_seed(0)
 
 
-abs_config_dir = os.path.abspath("../conf")
+abs_config_dir=os.path.abspath(os.path.join(differentiable_robot_model.__path__[0], "../conf"))
 # we load configurations for a ground truth robot , and a learnable robot model
 with initialize_config_dir(config_dir=abs_config_dir):
     # which parameters are learnable is specified in the config file
@@ -26,7 +29,11 @@ with initialize_config_dir(config_dir=abs_config_dir):
 
 
 gt_robot_model = DifferentiableTwoLinkRobot()
-learnable_robot_model = DifferentiableRobotModel(**learnable_robot_model_cfg.model)
+
+urdf_path = os.path.join(diff_robot_data.__path__[0], learnable_robot_model_cfg.model.rel_urdf_path)
+learnable_robot_model = DifferentiableRobotModel(urdf_path,
+                                                 learnable_robot_model_cfg.model.learnable_rigid_body_config,
+                                                 learnable_robot_model_cfg.model.name)
 
 train_data = generate_random_forward_kinematics_data(gt_robot_model, n_data=100, ee_name="endEffector")
 q = train_data["q"]
