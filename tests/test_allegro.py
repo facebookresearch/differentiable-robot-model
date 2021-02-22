@@ -130,9 +130,10 @@ class TestRobotModel:
         )
 
         for i in range(num_dofs):
+            j_idx = robot_model._controlled_joints[i] - 1 # pybullet link idx starts at -1 for base link
             p.resetJointState(
                 bodyUniqueId=robot_id,
-                jointIndex=i,
+                jointIndex=j_idx,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
                 physicsClientId=pc_id
@@ -158,11 +159,18 @@ class TestRobotModel:
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
         num_dofs = setup_dict["num_dofs"]
+        num_joints = len(robot_model._bodies) - 1
 
         test_angles, test_velocities = (
             test_case["joint_angles"],
             test_case["joint_velocities"],
         )
+        bullet_test_angles = [0] * num_joints
+        bullet_test_velocities = [0] * num_joints
+        for i in range(num_dofs):
+            j_idx = robot_model._controlled_joints[i] - 1
+            bullet_test_angles[j_idx] = test_angles[i]
+            bullet_test_velocities[j_idx] = test_velocities[i]
 
         model_jac_lin, model_jac_ang = robot_model.compute_endeffector_jacobian(
             torch.Tensor(test_angles).reshape(1, num_dofs), ee_link_name
