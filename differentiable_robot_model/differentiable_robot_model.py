@@ -397,7 +397,8 @@ class DifferentiableRobotModel(torch.nn.Module):
                 pose = self._bodies[idx].pose
                 axis = self._bodies[idx].joint_axis
                 axis_idx = int(torch.where(axis[0])[0])
-                p_i, z_i = pose.translation()[0], pose.rotation()[0, :, axis_idx]
+                rot_sign = torch.sign(axis[0, axis_idx])
+                p_i, z_i = pose.translation()[0], rot_sign * pose.rotation()[0, :, axis_idx]
                 lin_jac[:, i] = torch.cross(z_i, p_e - p_i)
                 ang_jac[:, i] = z_i
 

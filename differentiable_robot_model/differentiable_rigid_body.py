@@ -72,12 +72,12 @@ class DifferentiableRigidBody(torch.nn.Module):
 
         # when we update the joint angle, we also need to update the transformation
         self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
-        if self.joint_axis[0, 0] == 1:
-            rot = x_rot(q)
-        elif self.joint_axis[0, 1] == 1:
-            rot = y_rot(q)
+        if torch.abs(self.joint_axis[0, 0]) == 1:
+            rot = x_rot(torch.sign(self.joint_axis[0, 0]) * q)
+        elif torch.abs(self.joint_axis[0, 1]) == 1:
+            rot = y_rot(torch.sign(self.joint_axis[0, 1]) * q)
         else:
-            rot = z_rot(q)
+            rot = z_rot(torch.sign(self.joint_axis[0, 2]) * q)
 
         self.joint_pose.set_rotation(fixed_rotation.repeat(batch_size, 1, 1) @ rot)
         return
