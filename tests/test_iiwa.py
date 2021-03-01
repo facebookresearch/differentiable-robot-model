@@ -246,22 +246,13 @@ class TestRobotModel:
                 targetVelocity=test_velocities[i],
                 physicsClientId=pc_id
             )
-        bullet_ee_state = p.getLinkState(robot_id, ee_id, physicsClientId = pc_id)
-
         bullet_mass = np.array(p.calculateMassMatrix(robot_id, test_angles,physicsClientId = pc_id))
         inertia_mat = robot_model.compute_lagrangian_inertia_matrix(
             torch.Tensor(test_angles).reshape(1, num_dofs)
         )
 
         assert np.allclose(
-            model_ee_state[0].detach().numpy(),
-            np.asarray(bullet_ee_state[0]),
-            atol=1e-7,
-        )
-        assert np.allclose(
-            model_ee_state[1].detach().numpy(),
-            np.asarray(bullet_ee_state[1]),
-            atol=1e-7,
+            inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
         )
 
     def test_forward_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):
