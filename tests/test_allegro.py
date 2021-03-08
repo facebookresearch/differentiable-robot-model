@@ -15,7 +15,9 @@ np.set_printoptions(precision=3, suppress=True)
 torch.set_printoptions(precision=3, sci_mode=False)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
-rel_urdf_path = "allegro/urdf/allegro_hand_description_left.urdf"
+#rel_urdf_path = "allegro/urdf/allegro_hand_description_left.urdf"
+#rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger.urdf"
+rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger_wotip.urdf"
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 pc_id = p.connect(p.DIRECT)
@@ -118,8 +120,8 @@ def setup_dict():
     (14, "link_3.0_tip"), 
     (19, "link_15.0_tip"), # thumb
 ])
-class TestRobotModel:
-    def test_end_effector_state(self, request, setup_dict, ee_link_idx, ee_link_name):
+class TestRobotModelEE:
+    def _test_end_effector_state(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
         num_dofs = setup_dict["num_dofs"]
@@ -155,7 +157,7 @@ class TestRobotModel:
             atol=1e-7,
         )
 
-    def test_ee_jacobian(self, request, setup_dict, ee_link_idx, ee_link_name):
+    def _test_ee_jacobian(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
         num_dofs = setup_dict["num_dofs"]
@@ -192,8 +194,8 @@ class TestRobotModel:
             model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
         )
 
-    """
-    def test_inverse_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):
+class TestRobotModel:
+    def test_inverse_dynamics(self, request, setup_dict):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
         num_dofs = setup_dict["num_dofs"]
@@ -205,9 +207,10 @@ class TestRobotModel:
         test_accelerations = test_case["joint_accelerations"]
 
         for i in range(num_dofs):
+            j_idx = robot_model._controlled_joints[i] - 1 # pybullet link idx starts at -1 for base link
             p.resetJointState(
                 bodyUniqueId=robot_id,
-                jointIndex=i,
+                jointIndex=j_idx,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
                 physicsClientId=pc_id
@@ -222,17 +225,8 @@ class TestRobotModel:
             torch.Tensor(test_velocities).reshape(1, num_dofs),
             torch.Tensor(test_accelerations).reshape(1, num_dofs),
             include_gravity=True,
+            include_damping=False   # pybullet does not include damping/viscous friction in their inverse dynamics call
         )
-        if JOINT_DAMPING != 0.0:
-            # if we have non-zero joint damping, we'll have to subtract the damping term from our predicted torques,
-            # because pybullet does not include damping/viscous friction in their inverse dynamics call
-            damping_const = torch.zeros(1, num_dofs)
-            qd = torch.Tensor(test_velocities).reshape(1, num_dofs)
-            for i in range(robot_model._n_dofs):
-                idx = robot_model._controlled_joints[i]
-                damping_const[:, i] = robot_model._bodies[idx].get_joint_damping_const()
-            damping_term = damping_const.repeat(1, 1) * qd
-            model_torques -= damping_term
 
         assert np.allclose(
             model_torques.detach().squeeze().numpy(),
@@ -240,7 +234,7 @@ class TestRobotModel:
             atol=1e-7,
         )
 
-    def test_mass_computation(self, request, setup_dict, ee_link_idx, ee_link_name):
+    def test_mass_computation(self, request, setup_dict):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
         num_dofs = setup_dict["num_dofs"]
@@ -250,10 +244,11 @@ class TestRobotModel:
             test_case["joint_velocities"],
         )
 
-        for i in range(7):
+        for i in range(num_dofs):
+            j_idx = robot_model._controlled_joints[i] - 1 # pybullet link idx starts at -1 for base link
             p.resetJointState(
                 bodyUniqueId=robot_id,
-                jointIndex=i,
+                jointIndex=j_idx,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
                 physicsClientId=pc_id
@@ -268,7 +263,7 @@ class TestRobotModel:
             inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
         )
 
-    def test_forward_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):
+    def test_forward_dynamics(self, request, setup_dict):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
         num_dofs = setup_dict["num_dofs"]
@@ -338,4 +333,3 @@ class TestRobotModel:
                 model_qdd, np.asarray(test_accelerations), atol=1e-7
             )  # if atol = 1e-3 it doesnt pass
         assert np.allclose(model_qdd, qdd, atol=1e-7)  # if atol = 1e-3 it doesnt pass
-    """

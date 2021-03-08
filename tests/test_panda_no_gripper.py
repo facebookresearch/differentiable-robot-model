@@ -181,7 +181,6 @@ class TestRobotModel:
             model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
         )
 
-    """
     def test_inverse_dynamics(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
@@ -327,4 +326,3 @@ class TestRobotModel:
                 model_qdd, np.asarray(test_accelerations), atol=1e-7
             )  # if atol = 1e-3 it doesnt pass
         assert np.allclose(model_qdd, qdd, atol=1e-7)  # if atol = 1e-3 it doesnt pass
-    """
