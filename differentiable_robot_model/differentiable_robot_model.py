@@ -164,22 +164,30 @@ class DifferentiableRobotModel(torch.nn.Module):
             tmp = body.vel.cross_motion_vec(body.joint_vel)
             body.acc = acc_parent_body.add_motion_vec(body.joint_acc).add_motion_vec(tmp)
 
-        child_body = self._bodies[-1]
+        # reset all forces for backward pass
+        for i in range(0, len(self._bodies)):
+            self._bodies[i].force = SpatialForceVec()
 
         # backward pass to propagate forces up (from endeffector to root body)
-        for i in range(len(self._bodies) - 2, 0, -1):
+        for i in range(len(self._bodies) - 1, 0, -1):
             body = self._bodies[i]
-            joint_pose = child_body.joint_pose
+            joint_pose = body.joint_pose
 
-            # pose x children_force
-            child_body_force = child_body.force.transform(joint_pose)
-
+            # body force on joint
             icxacc = body.inertia.multiply_motion_vec(body.acc)
             icxvel = body.inertia.multiply_motion_vec(body.vel)
             tmp_force = body.vel.cross_force_vec(icxvel)
 
-            body.force = icxacc.add_force_vec(tmp_force).add_force_vec(child_body_force)
-            child_body = body
+            body.force = body.force.add_force_vec(icxacc).add_force_vec(tmp_force)
+
+            # pose x body_force => propagate to parent
+            if i > 0:
+                parent_name = self._urdf_model.get_name_of_parent_body(body.name)
+                parent_body = self._bodies[self._name_to_idx_map[parent_name]]
+
+                backprop_force = body.force.transform(joint_pose)
+                parent_body.force = parent_body.force.add_force_vec(backprop_force)
+
         return
 
     def compute_inverse_dynamics(
@@ -188,6 +196,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         qd: torch.Tensor,
         qdd_des: torch.Tensor,
         include_gravity: Optional[bool] = True,
+        include_damping: Optional[bool] = True,
     ) -> torch.Tensor:
         r"""
 
@@ -237,11 +246,12 @@ class DifferentiableRobotModel(torch.nn.Module):
             ).squeeze()
 
         # we add forces to counteract damping
-        damping_const = torch.zeros(1, self._n_dofs)
-        for i in range(self._n_dofs):
-            idx = self._controlled_joints[i]
-            damping_const[:, i] = self._bodies[idx].get_joint_damping_const()
-        force += damping_const.repeat(batch_size, 1) * qd
+        if include_damping:
+            damping_const = torch.zeros(1, self._n_dofs)
+            for i in range(self._n_dofs):
+                idx = self._controlled_joints[i]
+                damping_const[:, i] = self._bodies[idx].get_joint_damping_const()
+            force += damping_const.repeat(batch_size, 1) * qd
 
         return force
 
