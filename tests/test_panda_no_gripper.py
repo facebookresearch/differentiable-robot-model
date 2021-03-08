@@ -29,7 +29,7 @@ robot_id = p.loadURDF(
 )
 
 p.setGravity(0, 0, -9.81, physicsClientId=pc_id)
-JOINT_DAMPING = 0.5
+JOINT_DAMPING = 0.0
 
 NUM_JOINTS = p.getNumJoints(robot_id)
 
