@@ -125,6 +125,38 @@ class CoordinateTransform(object):
             q[n, :] *= 0.5 / math.sqrt(tn * M[n, 3, 3])
         return q
 
+    def to_matrix(self):
+        mat = torch.zeros((6, 6))
+        t = torch.zeros((3, 3))
+        t[0, 1] = -self._trans[0, 2]
+        t[0, 2] = self._trans[0, 1]
+        t[1, 0] = self._trans[0, 2]
+        t[1, 2] = -self._trans[0, 0]
+        t[2, 0] = -self._trans[0, 1]
+        t[2, 1] = self._trans[0, 0]
+        _Erx = self._rot[0].transpose(-2, 1).matmul(t)
+
+        mat[:3, :3] = self._rot[0].transpose(-2, 1)
+        mat[3:, 0:3] = -_Erx
+        mat[3:, 3:] = self._rot[0].transpose(-2, 1)
+        return mat
+
+    def to_matrix_transpose(self):
+        mat = torch.zeros((6, 6))
+        t = torch.zeros((3, 3))
+        t[0, 1] = -self._trans[0, 2]
+        t[0, 2] = self._trans[0, 1]
+        t[1, 0] = self._trans[0, 2]
+        t[1, 2] = -self._trans[0, 0]
+        t[2, 0] = -self._trans[0, 1]
+        t[2, 1] = self._trans[0, 0]
+        _Erx = self._rot[0].matmul(t)
+
+        mat[:3, :3] = self._rot[0].transpose(1, 0)
+        mat[3:, 0:3] = -_Erx.transpose(1, 0)
+        mat[3:, 3:] = self._rot[0].transpose(1, 0)
+        return mat
+
 
 class SpatialMotionVec(object):
 
@@ -179,6 +211,15 @@ class SpatialMotionVec(object):
         new_lin += (transform.rotation() @ self.lin.unsqueeze(2)).squeeze(2)
         return SpatialMotionVec(new_lin, new_ang)
 
+    def get_vector(self):
+        return torch.cat([self.ang, self.lin], dim=1)
+
+    def multiply(self, v):
+        return SpatialMotionVec(self.lin*v, self.ang*v)
+
+    def dot(self, smv):
+        return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
+
 
 class SpatialForceVec(object):
     def __init__(self,
@@ -208,6 +249,15 @@ class SpatialForceVec(object):
         new_ang = (transform.trans_cross_rot() @ self.lin.unsqueeze(2)).squeeze(2)
         new_ang += (transform.rotation() @ self.ang.unsqueeze(2)).squeeze(2)
         return SpatialForceVec(new_lin, new_ang)
+
+    def get_vector(self):
+        return torch.cat([self.ang, self.lin], dim=1)
+
+    def multiply(self, v):
+        return SpatialForceVec(self.lin*v, self.ang*v)
+
+    def dot(self, smv):
+        return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
 
 
 class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
@@ -239,6 +289,28 @@ class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
         ) + utils.cross_product(mcom.repeat(batch_size, 1), smv.lin)
 
         return SpatialForceVec(new_lin_force, new_ang_force)
+
+    def get_spatial_mat(self):
+        mass, com, inertia_mat = self._get_parameter_values()
+        mcom = mass * com
+        com_skew_symm_mat = utils.vector3_to_skew_symm_matrix(com)
+        inertia = inertia_mat + mass * (
+                com_skew_symm_mat @ com_skew_symm_mat.transpose(-2, -1)
+        )
+        mat = torch.zeros((6, 6))
+        mat[:3, :3] = inertia
+        mat[3, 0] = 0; mat[3, 1] = mcom[0, 2]; mat[3, 2] = -mcom[0, 1]
+        mat[4, 0] = -mcom[0, 2]; mat[4, 1] = 0.0; mat[4, 2] = mcom[0, 0]
+        mat[5, 0] = mcom[0, 1]; mat[5, 1] = -mcom[0, 0]; mat[5, 2] = 0.0
+
+        mat[0, 3] = 0; mat[0, 4] = -mcom[0, 2]; mat[0, 5] = mcom[0, 1]
+        mat[1, 3] = mcom[0, 2]; mat[1, 4] = 0.0; mat[1, 5] = -mcom[0, 0]
+        mat[2, 3] = -mcom[0, 1]; mat[2, 4] = mcom[0, 0]; mat[2, 5] = 0.0
+
+        mat[3, 3] = mass
+        mat[4, 4] = mass
+        mat[5, 5] = mass
+        return mat
 
 
 class LearnableSpatialRigidBodyInertia(DifferentiableSpatialRigidBodyInertia):
