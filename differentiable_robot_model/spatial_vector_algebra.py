@@ -215,10 +215,15 @@ class SpatialMotionVec(object):
         return torch.cat([self.ang, self.lin], dim=1)
 
     def multiply(self, v):
-        return SpatialMotionVec(self.lin*v, self.ang*v)
+        batch_size = self.lin.shape[0]
+        return SpatialForceVec(self.lin*v.view(batch_size, 1), self.ang*v.view(batch_size, 1))
 
     def dot(self, smv):
-        return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
+        batch_size, n_d = self.ang.shape
+        tmp1 = torch.bmm(self.ang.view(batch_size, 1, n_d), smv.ang.view(batch_size, n_d, 1)).squeeze()
+        tmp2 = torch.bmm(self.lin.view(batch_size, 1, n_d), smv.lin.view(batch_size, n_d, 1)).squeeze()
+        return tmp1 + tmp2
+        #return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
 
 
 class SpatialForceVec(object):
@@ -254,10 +259,15 @@ class SpatialForceVec(object):
         return torch.cat([self.ang, self.lin], dim=1)
 
     def multiply(self, v):
-        return SpatialForceVec(self.lin*v, self.ang*v)
+        batch_size = self.lin.shape[0]
+        return SpatialForceVec(self.lin*v.view(batch_size, 1), self.ang*v.view(batch_size, 1))
 
     def dot(self, smv):
-        return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
+        #return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
+        batch_size, n_d = self.ang.shape
+        tmp1 = torch.bmm(self.ang.view(batch_size, 1, n_d), smv.ang.view(batch_size, n_d, 1)).squeeze()
+        tmp2 = torch.bmm(self.lin.view(batch_size, 1, n_d), smv.lin.view(batch_size, n_d, 1)).squeeze()
+        return tmp1 + tmp2
 
 
 class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):

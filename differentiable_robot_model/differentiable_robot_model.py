@@ -342,10 +342,10 @@ class DifferentiableRobotModel(torch.nn.Module):
             qd: torch.Tensor,
             f: torch.Tensor,
             include_gravity: Optional[bool] = True,
+            use_damping: Optional[bool] = False,
     ) -> torch.Tensor:
         r"""
-        Computes next qdd by solving the Euler-Lagrange equation
-        qdd = H^{-1} (F - Cv - G - damping_term)
+        Computes next qdd via the articulated body algorithm (see Featherstones Rigid body dynamics page 132)
 
         Args:
             q: joint angles [batch_size x n_dofs]
@@ -359,11 +359,12 @@ class DifferentiableRobotModel(torch.nn.Module):
         qdd = torch.zeros_like(q)
         batch_size = q.shape[0]
 
-        damping_const = torch.zeros(1, self._n_dofs)
-        for i in range(self._n_dofs):
-            idx = self._controlled_joints[i]
-            damping_const[:, i] = self._bodies[idx].get_joint_damping_const()
-        f -= damping_const.repeat(batch_size, 1) * qd
+        if use_damping:
+            damping_const = torch.zeros(1, self._n_dofs)
+            for i in range(self._n_dofs):
+                idx = self._controlled_joints[i]
+                damping_const[:, i] = self._bodies[idx].get_joint_damping_const()
+            f -= damping_const.repeat(batch_size, 1) * qd
 
         # we set the current state of the robot
         self.update_kinematic_state(q, qd)
@@ -379,7 +380,6 @@ class DifferentiableRobotModel(torch.nn.Module):
         body = self._bodies[0]
         body.acc = base_acc
 
-        # forward pass to propagate accelerations from root to end-effector link
         for i in range(1, len(self._bodies)):
             body = self._bodies[i]
 
@@ -387,74 +387,60 @@ class DifferentiableRobotModel(torch.nn.Module):
             body.c = body.vel.cross_motion_vec(body.joint_vel)
             icxvel = body.inertia.multiply_motion_vec(body.vel)
             body.pA = body.vel.cross_force_vec(icxvel)
-            body.IA = body.inertia.get_spatial_mat()
+            # IA is 6x6, we repeat it for each item in the batch, as the inertia matrix is shared across the whole batch
+            body.IA = body.inertia.get_spatial_mat().repeat((batch_size, 1, 1))
 
-        # backward pass to propagate forces up (from endeffector to root body)
         for i in range(len(self._bodies) - 2, 0, -1):
             body = self._bodies[i]
-            #print(f"{i}, joint idx: {body.joint_idx}")
 
-            S = SpatialMotionVec(lin_motion=torch.zeros((1, 3)), ang_motion=body.joint_axis)
+            S = SpatialMotionVec(lin_motion=torch.zeros((batch_size, 3)),
+                                 ang_motion=body.joint_axis.repeat((batch_size, 1)))
             body.S = S
-            Utmp = body.IA.matmul(S.get_vector().transpose(-2, -1))
-            body.U = SpatialForceVec(lin_force=Utmp[None, 3:, 0],
-                                     ang_force=Utmp[None, :3, 0])
+            # we take the first inertia matrix, since it doesn't matter
+            Utmp = body.IA[0].matmul(S.get_vector().transpose(-2, -1)).transpose(-2, -1)
+            body.U = SpatialForceVec(lin_force=Utmp[:, 3:],
+                                     ang_force=Utmp[:, :3])
             body.d = S.dot(body.U)
-            body.u = f[0, body.joint_idx] - body.pA.dot(S)
+            body.u = f[:, body.joint_idx] - body.pA.dot(S)
 
-            #print(f"U : {body.U.get_vector()}")
-            #print(f"d : {body.d}")
-            #print(f"u : {body.u}")
             parent_name = self._urdf_model.get_name_of_parent_body(body.name)
             parent_idx = self._name_to_idx_map[parent_name]
 
-            #print(f"parent idx: {parent_idx}")
             if parent_idx > 0:
                 parent_body = self._bodies[parent_idx]
                 U = body.U.get_vector()
+                Ud = U/body.d.view(batch_size, 1)
                 c = body.c.get_vector()
 
-                IA = body.IA - U * (U/body.d).transpose(1, 0)
+                # IA is of size [batch_size x 6 x 6]
+                IA = body.IA - torch.bmm(U.view(batch_size, 6, 1), Ud.view(batch_size, 1, 6))
 
-                tmp  = IA.matmul(c.transpose(1, 0))
-                tmps = SpatialForceVec(lin_force=tmp[None, 3:, 0],
-                                       ang_force=tmp[None, :3, 0])
-                uu = body.U.multiply(body.u/body.d)
+                tmp = torch.bmm(IA, c.view(batch_size, 6, 1)).squeeze(dim=2)
+                tmps = SpatialForceVec(lin_force=tmp[:, 3:],
+                                       ang_force=tmp[:, :3])
+                ud = body.u/body.d
+                uu = body.U.multiply(ud)
                 pa = body.pA.add_force_vec(tmps).add_force_vec(uu)
 
                 joint_pose = body.joint_pose
 
-                # pose x children_force
-                transform = joint_pose.to_matrix()
-                parent_body.IA += transform.transpose(-2, -1).matmul(IA).matmul(transform)
+                # transform is of shape 6x6 and shared across all items in a batch
+                transform_mat = joint_pose.to_matrix().repeat((batch_size, 1, 1))
+                parent_body.IA += torch.bmm(transform_mat.transpose(-2, -1), IA).bmm(transform_mat)
                 parent_body.pA = parent_body.pA.add_force_vec(pa.transform(joint_pose))
-
-                #print(f"body IA: {body.IA}")
-                #print(f"pa: {pa.get_vector()}")
-                #print(f"IA : {IA}")
-                #print(f" transform rot: {joint_pose._rot}")
-                #print(f" transform trans: {joint_pose._trans}")
-                #print(f" transfrom mat: {transform}")
-                #print(f" parent body IA: {parent_body.IA}")
-                #print(f" parent body pA: {parent_body.pA.get_vector()}")
-                #print("")
 
         base_acc = SpatialMotionVec(lin_motion=base_lin_acc, ang_motion=base_ang_acc)
 
         body = self._bodies[0]
         body.acc = base_acc
 
-        #print("")
-        #print("=========================================")
         # forward pass to propagate accelerations from root to end-effector link
         # Todo: -1 is a fix for now to skip final virtual ee link
         for i in range(1, len(self._bodies)-1):
             joint_idx = self._controlled_joints.index(i)
-            #print(f"i: {i}, joint idx: {joint_idx}")
             body = self._bodies[i]
             parent_name = self._urdf_model.get_name_of_parent_body(body.name)
             parent_idx = self._name_to_idx_map[parent_name]
-            #print(f"parent idx: {parent_idx}")
             parent_body = self._bodies[parent_idx]
 
             # get the inverse of the current joint pose
@@ -462,16 +448,10 @@ class DifferentiableRobotModel(torch.nn.Module):
 
             # transform spatial acceleration of parent body into this body's frame
             acc_parent_body = parent_body.acc.transform(inv_pose)
-            #print(f"parent body acc: {acc_parent_body.get_vector()}")
-            #print(f"body c: {body.c.get_vector()}")
             # body velocity cross joint vel
             body.acc = acc_parent_body.add_motion_vec(body.c)
-            #print(f"body acc: {body.acc.get_vector()}")
-            qdd[0, joint_idx] = (1.0/body.d) * (body.u - body.U.dot(body.acc))
-            #print(f"qdd: {qdd[0, joint_idx]}")
-            body.acc = body.acc.add_motion_vec(body.S.multiply(qdd[0, joint_idx]))
-            #print(f"body acc: {body.acc.get_vector()}")
-            #print("")
+            qdd[:, joint_idx] = (1.0/body.d) * (body.u - body.U.dot(body.acc))
+            body.acc = body.acc.add_motion_vec(body.S.multiply(qdd[:, joint_idx]))
 
         return qdd
 
