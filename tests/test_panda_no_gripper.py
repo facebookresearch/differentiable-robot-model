@@ -31,6 +31,10 @@ robot_id = p.loadURDF(
 
 p.setGravity(0, 0, -9.81, physicsClientId=pc_id)
 JOINT_DAMPING = 0.0
+if JOINT_DAMPING > 0:
+    use_damping = True
+else:
+    use_damping = False
 
 # need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
 # does use joint damping, but the inverse dynamics call does not use joint damping
@@ -326,6 +330,7 @@ class TestRobotModel:
             torch.Tensor(test_velocities).reshape(1, dof),
             torch.Tensor(bullet_tau).reshape(1, dof),
             include_gravity=True,
+            use_damping=use_damping
         )
 
         model_qdd = np.asarray(model_qdd.detach().squeeze())
