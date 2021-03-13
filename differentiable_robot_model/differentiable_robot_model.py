@@ -240,7 +240,11 @@ class DifferentiableRobotModel(torch.nn.Module):
         for i in range(qdd_des.shape[1]):
             idx = self._controlled_joints[i]
             rot_axis = torch.zeros((batch_size, 3)).to(self._device)
-            rot_axis[:, 2] = torch.ones(batch_size).to(self._device)
+            axis = self._bodies[idx].joint_axis[0]
+            axis_idx = int(torch.where(axis)[0])
+            rot_sign = torch.sign(axis[axis_idx])
+
+            rot_axis[:, axis_idx] = rot_sign * torch.ones(batch_size).to(self._device)
             force[:, i] += (
                 self._bodies[idx].force.ang.unsqueeze(1) @ rot_axis.unsqueeze(2)
             ).squeeze()
