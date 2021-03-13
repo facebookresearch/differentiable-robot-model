@@ -33,6 +33,10 @@ JOINT_DAMPING = 0.5
 
 NUM_JOINTS = p.getNumJoints(robot_id)
 
+if JOINT_DAMPING > 0:
+    use_damping = True
+else:
+    use_damping = False
 # need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
 # does use joint damping, but the inverse dynamics call does not use joint damping
 for link_idx in range(NUM_JOINTS):
@@ -316,6 +320,7 @@ class TestRobotModel:
             torch.Tensor(test_velocities).reshape(1, num_dofs),
             torch.Tensor(bullet_tau).reshape(1, num_dofs),
             include_gravity=True,
+            use_damping=use_damping
         )
 
         model_qdd = np.asarray(model_qdd.detach().squeeze())
