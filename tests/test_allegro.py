@@ -188,12 +188,6 @@ class TestRobotModelEE:
             objAccelerations=[0] * num_dofs,
             physicsClientId=pc_id
         )
-        print("LIN")
-        print(model_jac_lin.detach().numpy())
-        print(np.asarray(bullet_jac_lin))
-        print("ANG")
-        print(model_jac_ang.detach().numpy())
-        print(np.asarray(bullet_jac_ang))
         assert np.allclose(
             model_jac_lin.detach().numpy(), np.asarray(bullet_jac_lin), atol=1e-7
         )
