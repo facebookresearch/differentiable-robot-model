@@ -15,9 +15,9 @@ np.set_printoptions(precision=3, suppress=True)
 torch.set_printoptions(precision=3, sci_mode=False)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
-#rel_urdf_path = "allegro/urdf/allegro_hand_description_left.urdf"
+rel_urdf_path = "allegro/urdf/allegro_hand_description_left.urdf"
 #rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger.urdf"
-rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger_wotip.urdf"
+#rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger_wotip.urdf"
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 pc_id = p.connect(p.DIRECT)
@@ -37,7 +37,7 @@ def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
     limits_per_joint = robot_model.get_joint_limits()
     joint_lower_bounds = [joint["lower"] for joint in limits_per_joint]
     joint_upper_bounds = [joint["upper"] for joint in limits_per_joint]
-    joint_velocity_limits = [joint["velocity"] for joint in limits_per_joint]
+    joint_velocity_limits = [0.01*joint["velocity"] for joint in limits_per_joint]
     joint_angles = []
     joint_velocities = []
     joint_accelerations = []
@@ -116,10 +116,10 @@ def setup_dict():
 
 @pytest.mark.parametrize("ee_link_idx, ee_link_name", [
     (3, "link_11.0"), 
-    #(4, "link_11.0_tip"), 
-    #(9, "link_7.0_tip"), 
-    #(14, "link_3.0_tip"), 
-    #(19, "link_15.0_tip"), # thumb
+    (4, "link_11.0_tip"), 
+    (9, "link_7.0_tip"), 
+    (14, "link_3.0_tip"), 
+    (19, "link_15.0_tip"), # thumb
 ])
 class TestRobotModelEE:
     def test_end_effector_state(self, request, setup_dict, ee_link_idx, ee_link_name):
