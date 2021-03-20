@@ -15,9 +15,9 @@ np.set_printoptions(precision=3, suppress=True)
 torch.set_printoptions(precision=3, sci_mode=False)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
-rel_urdf_path = "allegro/urdf/allegro_hand_description_left.urdf"
+#rel_urdf_path = "allegro/urdf/allegro_hand_description_left.urdf"
 #rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger.urdf"
-#rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger_wotip.urdf"
+rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger_wotip.urdf"
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 pc_id = p.connect(p.DIRECT)
@@ -31,22 +31,7 @@ robot_id = p.loadURDF(
 )
 
 p.setGravity(0, 0, -9.81, physicsClientId=pc_id)
-JOINT_DAMPING = 0.5
-
 NUM_JOINTS = p.getNumJoints(robot_id)
-
-# need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
-# does use joint damping, but the inverse dynamics call does not use joint damping
-for link_idx in range(NUM_JOINTS):
-    p.changeDynamics(
-        robot_id,
-        link_idx,
-        linearDamping=0.0,
-        angularDamping=0.0,
-        jointDamping=JOINT_DAMPING,
-        physicsClientId=pc_id
-    )
-    p.changeDynamics(robot_id, link_idx, maxJointVelocity=200, physicsClientId=pc_id)
 
 def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
     limits_per_joint = robot_model.get_joint_limits()
@@ -107,6 +92,21 @@ def setup_dict():
     robot_model = DifferentiableRobotModel(urdf_path, LearnableRigidBodyConfig(), "differentiable_allegro_hand")
     test_case = sample_test_case(robot_model)
 
+    # Update pybullet joint damping
+    NUM_JOINTS = p.getNumJoints(robot_id)
+    for link_idx in range(NUM_JOINTS):
+        joint_damping = robot_model._bodies[link_idx+1].get_joint_damping_const()
+        p.changeDynamics(
+            robot_id,
+            link_idx,
+            linearDamping=0.0,
+            angularDamping=0.0,
+            jointDamping=joint_damping,
+            #jointDamping=0.0,
+            physicsClientId=pc_id
+        )
+        p.changeDynamics(robot_id, link_idx, maxJointVelocity=200, physicsClientId=pc_id)
+
     return {
         "robot_model": robot_model, 
         "test_case": test_case,
@@ -115,13 +115,14 @@ def setup_dict():
 
 
 @pytest.mark.parametrize("ee_link_idx, ee_link_name", [
-    (4, "link_11.0_tip"), 
-    (9, "link_7.0_tip"), 
-    (14, "link_3.0_tip"), 
-    (19, "link_15.0_tip"), # thumb
+    (3, "link_11.0"), 
+    #(4, "link_11.0_tip"), 
+    #(9, "link_7.0_tip"), 
+    #(14, "link_3.0_tip"), 
+    #(19, "link_15.0_tip"), # thumb
 ])
 class TestRobotModelEE:
-    def _test_end_effector_state(self, request, setup_dict, ee_link_idx, ee_link_name):
+    def test_end_effector_state(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
         num_dofs = setup_dict["num_dofs"]
@@ -157,7 +158,7 @@ class TestRobotModelEE:
             atol=1e-7,
         )
 
-    def _test_ee_jacobian(self, request, setup_dict, ee_link_idx, ee_link_name):
+    def test_ee_jacobian(self, request, setup_dict, ee_link_idx, ee_link_name):
         robot_model = setup_dict["robot_model"]
         test_case = setup_dict["test_case"]
         num_dofs = setup_dict["num_dofs"]
@@ -187,6 +188,12 @@ class TestRobotModelEE:
             objAccelerations=[0] * num_dofs,
             physicsClientId=pc_id
         )
+        print("LIN")
+        print(model_jac_lin.detach().numpy())
+        print(np.asarray(bullet_jac_lin))
+        print("ANG")
+        print(model_jac_ang.detach().numpy())
+        print(np.asarray(bullet_jac_ang))
         assert np.allclose(
             model_jac_lin.detach().numpy(), np.asarray(bullet_jac_lin), atol=1e-7
         )
@@ -225,7 +232,7 @@ class TestRobotModel:
             torch.Tensor(test_velocities).reshape(1, num_dofs),
             torch.Tensor(test_accelerations).reshape(1, num_dofs),
             include_gravity=True,
-            include_damping=False   # pybullet does not include damping/viscous friction in their inverse dynamics call
+            use_damping=False   # pybullet does not include damping/viscous friction in their inverse dynamics call
         )
 
         assert np.allclose(
@@ -274,7 +281,8 @@ class TestRobotModel:
         )
         test_accelerations = test_case["joint_accelerations"]
         dt = 1.0 / 240.0
-        controlled_joints = range(num_dofs)
+        controlled_joints = [i-1 for i in robot_model._controlled_joints]
+
         # activating torque control
         p.setJointMotorControlArray(
             bodyIndex=robot_id,
@@ -286,13 +294,15 @@ class TestRobotModel:
 
         # set simulation to be in state test_angles/test_velocities
         for i in range(num_dofs):
+            j_idx = robot_model._controlled_joints[i] - 1 # pybullet link idx starts at -1 for base link
             p.resetJointState(
                 bodyUniqueId=robot_id,
-                jointIndex=i,
+                jointIndex=j_idx,
                 targetValue=test_angles[i],
                 targetVelocity=test_velocities[i],
                 physicsClientId=pc_id
             )
+
 
         # let's get the torque that achieves the test_accelerations from the current state
         bullet_tau = np.array(
@@ -317,19 +327,14 @@ class TestRobotModel:
 
         qdd = (np.array(qd) - np.array(test_velocities)) / dt
 
-        model_qdd = robot_model.compute_forward_dynamics(
+        model_qdd = robot_model.compute_forward_dynamics_old(
             torch.Tensor(test_angles).reshape(1, num_dofs),
             torch.Tensor(test_velocities).reshape(1, num_dofs),
             torch.Tensor(bullet_tau).reshape(1, num_dofs),
             include_gravity=True,
+            #use_damping=False,
+            use_damping=True
         )
 
         model_qdd = np.asarray(model_qdd.detach().squeeze())
-        if JOINT_DAMPING == 0.0:
-            # we can only test this if joint damping is zero,
-            # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
-            # "inverse" of each other
-            assert np.allclose(
-                model_qdd, np.asarray(test_accelerations), atol=1e-7
-            )  # if atol = 1e-3 it doesnt pass
         assert np.allclose(model_qdd, qdd, atol=1e-7)  # if atol = 1e-3 it doesnt pass

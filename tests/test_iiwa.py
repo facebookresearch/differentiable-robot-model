@@ -18,6 +18,7 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
+# Setup pybullet client
 pc_id = p.connect(p.DIRECT)
 
 robot_id = p.loadURDF(
@@ -29,26 +30,7 @@ robot_id = p.loadURDF(
 )
 
 p.setGravity(0, 0, -9.81, physicsClientId=pc_id)
-JOINT_DAMPING = 0.5
-if JOINT_DAMPING > 0:
-    use_damping = True
-else:
-    use_damping = False
 
-NUM_JOINTS = p.getNumJoints(robot_id)
-
-# need to be careful with joint damping to zero, because in pybullet the forward dynamics (used for simulation)
-# does use joint damping, but the inverse dynamics call does not use joint damping
-for link_idx in range(NUM_JOINTS):
-    p.changeDynamics(
-        robot_id,
-        link_idx,
-        linearDamping=0.0,
-        angularDamping=0.0,
-        jointDamping=JOINT_DAMPING,
-        physicsClientId=pc_id
-    )
-    p.changeDynamics(robot_id, link_idx, maxJointVelocity=200, physicsClientId=pc_id)
 
 def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
     limits_per_joint = robot_model.get_joint_limits()
@@ -108,6 +90,21 @@ def setup_dict():
     # Load configuration
     robot_model = DifferentiableRobotModel(urdf_path, LearnableRigidBodyConfig(), "differentiable_allegro_hand")
     test_case = sample_test_case(robot_model)
+
+    # Update pybullet joint damping
+    NUM_JOINTS = p.getNumJoints(robot_id)
+    for link_idx in range(NUM_JOINTS):
+        joint_damping = robot_model._bodies[link_idx+1].joint_damping
+        p.changeDynamics(
+            robot_id,
+            link_idx,
+            linearDamping=0.0,
+            angularDamping=0.0,
+            jointDamping=joint_damping,
+            physicsClientId=pc_id
+        )
+        p.changeDynamics(robot_id, link_idx, maxJointVelocity=200, physicsClientId=pc_id)
+
 
     return {
         "robot_model": robot_model, 
@@ -214,17 +211,8 @@ class TestRobotModel:
             torch.Tensor(test_velocities).reshape(1, num_dofs),
             torch.Tensor(test_accelerations).reshape(1, num_dofs),
             include_gravity=True,
+            use_damping=False
         )
-        if JOINT_DAMPING != 0.0:
-            # if we have non-zero joint damping, we'll have to subtract the damping term from our predicted torques,
-            # because pybullet does not include damping/viscous friction in their inverse dynamics call
-            damping_const = torch.zeros(1, num_dofs)
-            qd = torch.Tensor(test_velocities).reshape(1, num_dofs)
-            for i in range(robot_model._n_dofs):
-                idx = robot_model._controlled_joints[i]
-                damping_const[:, i] = robot_model._bodies[idx].get_joint_damping_const()
-            damping_term = damping_const.repeat(1, 1) * qd
-            model_torques -= damping_term
 
         assert np.allclose(
             model_torques.detach().squeeze().numpy(),
@@ -318,15 +306,8 @@ class TestRobotModel:
             torch.Tensor(test_velocities).reshape(1, num_dofs),
             torch.Tensor(bullet_tau).reshape(1, num_dofs),
             include_gravity=True,
-            use_damping=use_damping
+            use_damping=True
         )
 
         model_qdd = np.asarray(model_qdd.detach().squeeze())
-        if JOINT_DAMPING == 0.0:
-            # we can only test this if joint damping is zero,
-            # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
-            # "inverse" of each other
-            assert np.allclose(
-                model_qdd, np.asarray(test_accelerations), atol=1e-7
-            )  # if atol = 1e-3 it doesnt pass
         assert np.allclose(model_qdd, qdd, atol=1e-7)  # if atol = 1e-3 it doesnt pass

@@ -198,7 +198,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         qd: torch.Tensor,
         qdd_des: torch.Tensor,
         include_gravity: Optional[bool] = True,
-        include_damping: Optional[bool] = True,
+        use_damping: Optional[bool] = True,
     ) -> torch.Tensor:
         r"""
 
@@ -252,7 +252,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             ).squeeze()
 
         # we add forces to counteract damping
-        if include_damping:
+        if use_damping:
             damping_const = torch.zeros(1, self._n_dofs)
             for i in range(self._n_dofs):
                 idx = self._controlled_joints[i]
@@ -262,7 +262,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return force
 
     def compute_non_linear_effects(
-        self, q: torch.Tensor, qd: torch.Tensor, include_gravity: Optional[bool] = True
+        self, q: torch.Tensor, qd: torch.Tensor, include_gravity: Optional[bool] = True, use_damping: Optional[bool] = True
     ) -> torch.Tensor:
         r"""
 
@@ -277,10 +277,10 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         """
         zero_qdd = q.new_zeros(q.shape)
-        return self.compute_inverse_dynamics(q, qd, zero_qdd, include_gravity)
+        return self.compute_inverse_dynamics(q, qd, zero_qdd, include_gravity, use_damping)
 
     def compute_lagrangian_inertia_matrix(
-        self, q: torch.Tensor, include_gravity: Optional[bool] = True
+        self, q: torch.Tensor, include_gravity: Optional[bool] = True, use_damping: Optional[bool] = True
     ) -> torch.Tensor:
         r"""
 
@@ -298,7 +298,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         zero_qdd = q.new_zeros(q.shape)
         if include_gravity:
             gravity_term = self.compute_inverse_dynamics(
-                q, zero_qd, zero_qdd, include_gravity
+                q, zero_qd, zero_qdd, include_gravity, use_damping
             )
         else:
             gravity_term = q.new_zeros(q.shape)
@@ -307,7 +307,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             [
                 (
                     self.compute_inverse_dynamics(
-                        q, zero_qd, identity_tensor[:, :, j], include_gravity
+                        q, zero_qd, identity_tensor[:, :, j], include_gravity, use_damping
                     )
                     - gravity_term
                 )
@@ -323,6 +323,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         qd: torch.Tensor,
         f: torch.Tensor,
         include_gravity: Optional[bool] = True,
+        use_damping: Optional[bool] = True
     ) -> torch.Tensor:
         r"""
         Computes next qdd by solving the Euler-Lagrange equation
@@ -339,10 +340,10 @@ class DifferentiableRobotModel(torch.nn.Module):
         """
 
         nle = self.compute_non_linear_effects(
-            q=q, qd=qd, include_gravity=include_gravity
+            q=q, qd=qd, include_gravity=include_gravity, use_damping=use_damping
         )
         inertia_mat = self.compute_lagrangian_inertia_matrix(
-            q=q, include_gravity=include_gravity
+            q=q, include_gravity=include_gravity, use_damping=use_damping
         )
 
         # Solve H qdd = F - Cv - G - damping_term
@@ -490,7 +491,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             [3, self._n_dofs]
         )
 
-        joint_id = self._urdf_model.find_joint_of_body(link_name)
+        joint_id = self._urdf_model.find_joint_of_body(link_name) + 1 # joint_id starts at index 0 for link 1 not base link
         while link_name != self._bodies[0].name:
             if joint_id in self._controlled_joints:
                 i = self._controlled_joints.index(joint_id)
@@ -498,14 +499,13 @@ class DifferentiableRobotModel(torch.nn.Module):
 
                 pose = self._bodies[idx].pose
                 axis = self._bodies[idx].joint_axis
-                axis_idx = int(torch.where(axis[0])[0])
-                rot_sign = torch.sign(axis[0, axis_idx])
-                p_i, z_i = pose.translation()[0], rot_sign * pose.rotation()[0, :, axis_idx]
+                p_i = pose.translation()[0]
+                z_i = pose.rotation()[0,:,:] @ axis.squeeze()
                 lin_jac[:, i] = torch.cross(z_i, p_e - p_i)
                 ang_jac[:, i] = z_i
 
             link_name = self._urdf_model.get_name_of_parent_body(link_name)
-            joint_id = self._urdf_model.find_joint_of_body(link_name)
+            joint_id = self._urdf_model.find_joint_of_body(link_name) + 1
 
         return lin_jac, ang_jac
 
