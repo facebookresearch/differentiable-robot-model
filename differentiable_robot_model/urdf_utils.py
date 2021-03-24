@@ -40,9 +40,8 @@ class URDFRobotModel(object):
             joint_name = joint.name
             # find joint that is the "child" of this body according to urdf
 
-            rpy = torch.tensor(joint.origin.rotation)
-            rot_angles = torch.tensor([rpy[0], rpy[1], rpy[2]])
-            trans = torch.tensor(joint.origin.position)
+            rot_angles = torch.Tensor(joint.origin.rotation)
+            trans = torch.Tensor(joint.origin.position)
             joint_type = joint.type
             joint_limits = None
             joint_damping = torch.zeros(1)
@@ -53,10 +52,10 @@ class URDFRobotModel(object):
                                 'upper': joint.limit.upper,
                                 'velocity': joint.limit.velocity}
                 try:
-                    joint_damping = torch.tensor(joint.dynamics.damping)
+                    joint_damping = torch.Tensor([joint.dynamics.damping])
                 except AttributeError:
-                    joint_damping = torch.tensor(0.0)
-                joint_axis = torch.tensor(joint.axis).reshape(1, 3)
+                    joint_damping = torch.Tensor([0.0])
+                joint_axis = torch.Tensor(joint.axis).reshape(1, 3)
 
         body_params['rot_angles'] = rot_angles
         body_params['trans'] = trans
@@ -67,8 +66,8 @@ class URDFRobotModel(object):
         body_params['joint_axis'] = joint_axis
 
         if link.inertial is not None:
-            mass = torch.tensor(link.inertial.mass)
-            com = torch.tensor(link.inertial.origin.position).reshape((1, 3)).to(self._device)
+            mass = torch.Tensor([link.inertial.mass])
+            com = torch.Tensor(link.inertial.origin.position).reshape((1, 3)).to(self._device)
 
             inert_mat = torch.zeros((3, 3)).to(self._device)
             inert_mat[0, 0] = link.inertial.inertia.ixx
