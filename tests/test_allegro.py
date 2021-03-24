@@ -16,8 +16,6 @@ torch.set_printoptions(precision=3, sci_mode=False)
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 rel_urdf_path = "allegro/urdf/allegro_hand_description_left.urdf"
-#rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger.urdf"
-#rel_urdf_path = "allegro/urdf/allegro_hand_description_left_finger_wotip.urdf"
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 pc_id = p.connect(p.DIRECT)
