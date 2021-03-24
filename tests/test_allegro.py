@@ -38,6 +38,8 @@ def sample_test_case(robot_model, zero_vel=False, zero_acc=False):
     joint_lower_bounds = [joint["lower"] for joint in limits_per_joint]
     joint_upper_bounds = [joint["upper"] for joint in limits_per_joint]
     joint_velocity_limits = [0.01*joint["velocity"] for joint in limits_per_joint]
+    # NOTE: sample low velocities since PyBullet inhibits unknown clipping for large damping forces
+    #       (encountered with the allegro hand urdf)
     joint_angles = []
     joint_velocities = []
     joint_accelerations = []

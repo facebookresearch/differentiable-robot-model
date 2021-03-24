@@ -427,7 +427,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             if parent_idx > 0:
                 parent_body = self._bodies[parent_idx]
                 U = body.U.get_vector()
-                Ud = U/(body.d.view(batch_size, 1) + 1e-37)
+                Ud = U/(body.d.view(batch_size, 1) + 1e-37) # add smoothing values in case of zero mass
                 c = body.c.get_vector()
 
                 # IA is of size [batch_size x 6 x 6]
@@ -436,7 +436,7 @@ class DifferentiableRobotModel(torch.nn.Module):
                 tmp = torch.bmm(IA, c.view(batch_size, 6, 1)).squeeze(dim=2)
                 tmps = SpatialForceVec(lin_force=tmp[:, 3:],
                                        ang_force=tmp[:, :3])
-                ud = body.u/(body.d + 1e-37)
+                ud = body.u/(body.d + 1e-37) # add smoothing values in case of zero mass
                 uu = body.U.multiply(ud)
                 pa = body.pA.add_force_vec(tmps).add_force_vec(uu)
 
