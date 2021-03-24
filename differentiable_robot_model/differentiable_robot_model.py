@@ -405,7 +405,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             # IA is 6x6, we repeat it for each item in the batch, as the inertia matrix is shared across the whole batch
             body.IA = body.inertia.get_spatial_mat().repeat((batch_size, 1, 1))
 
-        for i in range(len(self._bodies) - 2, 0, -1):
+        for i in range(len(self._bodies) - 1, 0, -1):
             body = self._bodies[i]
 
             S = SpatialMotionVec(lin_motion=torch.zeros((batch_size, 3)),
@@ -416,7 +416,10 @@ class DifferentiableRobotModel(torch.nn.Module):
             body.U = SpatialForceVec(lin_force=Utmp[:, 3:],
                                      ang_force=Utmp[:, :3])
             body.d = S.dot(body.U)
-            body.u = f[:, body.joint_idx] - body.pA.dot(S)
+            if body.joint_idx is not None:
+                body.u = f[:, body.joint_idx] - body.pA.dot(S)
+            else:
+                body.u = -body.pA.dot(S)
 
             parent_name = self._urdf_model.get_name_of_parent_body(body.name)
             parent_idx = self._name_to_idx_map[parent_name]
@@ -424,7 +427,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             if parent_idx > 0:
                 parent_body = self._bodies[parent_idx]
                 U = body.U.get_vector()
-                Ud = U/body.d.view(batch_size, 1)
+                Ud = U/(body.d.view(batch_size, 1) + 1e-37)
                 c = body.c.get_vector()
 
                 # IA is of size [batch_size x 6 x 6]
@@ -433,7 +436,7 @@ class DifferentiableRobotModel(torch.nn.Module):
                 tmp = torch.bmm(IA, c.view(batch_size, 6, 1)).squeeze(dim=2)
                 tmps = SpatialForceVec(lin_force=tmp[:, 3:],
                                        ang_force=tmp[:, :3])
-                ud = body.u/body.d
+                ud = body.u/(body.d + 1e-37)
                 uu = body.U.multiply(ud)
                 pa = body.pA.add_force_vec(tmps).add_force_vec(uu)
 
@@ -450,9 +453,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         body.acc = base_acc
 
         # forward pass to propagate accelerations from root to end-effector link
-        # Todo: -1 is a fix for now to skip final virtual ee link
-        for i in range(1, len(self._bodies)-1):
-            joint_idx = self._controlled_joints.index(i)
+        for i in range(1, len(self._bodies)):
             body = self._bodies[i]
             parent_name = self._urdf_model.get_name_of_parent_body(body.name)
             parent_idx = self._name_to_idx_map[parent_name]
@@ -465,8 +466,12 @@ class DifferentiableRobotModel(torch.nn.Module):
             acc_parent_body = parent_body.acc.transform(inv_pose)
             # body velocity cross joint vel
             body.acc = acc_parent_body.add_motion_vec(body.c)
-            qdd[:, joint_idx] = (1.0/body.d) * (body.u - body.U.dot(body.acc))
-            body.acc = body.acc.add_motion_vec(body.S.multiply(qdd[:, joint_idx]))
+
+            # Joint acc
+            if i in self._controlled_joints:
+                joint_idx = self._controlled_joints.index(i)
+                qdd[:, joint_idx] = (1.0/body.d) * (body.u - body.U.dot(body.acc))
+                body.acc = body.acc.add_motion_vec(body.S.multiply(qdd[:, joint_idx]))
 
         return qdd
 

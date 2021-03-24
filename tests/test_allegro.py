@@ -102,7 +102,6 @@ def setup_dict():
             linearDamping=0.0,
             angularDamping=0.0,
             jointDamping=joint_damping,
-            #jointDamping=0.0,
             physicsClientId=pc_id
         )
         p.changeDynamics(robot_id, link_idx, maxJointVelocity=200, physicsClientId=pc_id)
@@ -321,12 +320,11 @@ class TestRobotModel:
 
         qdd = (np.array(qd) - np.array(test_velocities)) / dt
 
-        model_qdd = robot_model.compute_forward_dynamics_old(
+        model_qdd = robot_model.compute_forward_dynamics(
             torch.Tensor(test_angles).reshape(1, num_dofs),
             torch.Tensor(test_velocities).reshape(1, num_dofs),
             torch.Tensor(bullet_tau).reshape(1, num_dofs),
             include_gravity=True,
-            #use_damping=False,
             use_damping=True
         )
 
