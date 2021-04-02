@@ -14,6 +14,11 @@ jobs:
           name: Setup env
           command: |
             [ -d ~/testenv ] || conda create -p ~/testenv
+            conda init bash
+            source ~/.bashrc
+            conda activate ~/testenv
+            pip install -r requirements.txt
+            pip install pytest
       - save_cache:
           key: deps9-{{ .Branch }}-{{ checksum "setup.py" }}
           paths:
