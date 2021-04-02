@@ -61,6 +61,24 @@ running `pytest` in the top-level folder will run our differentiable robot model
 which compare computations against pybullet.
 
 
+## Code Contribution
+
+We enforce linters for our code. The `formatting` test will not pass if your code does not conform.
+
+To make this easy for yourself, you can either
+- Add the formattings to your IDE
+- Install the git [pre-commit](https://pre-commit.com/) hooks by running
+    ```bash
+    pip install pre-commit
+    pre-commit install
+    ```
+
+For Python code, use [black](https://github.com/psf/black).
+
+To enforce this in VSCode, install [black](https://github.com/psf/black), [set your Python formatter to black](https://code.visualstudio.com/docs/python/editing#_formatting) and [set Format On Save to true](https://code.visualstudio.com/updates/v1_6#_format-on-save).
+
+To format manually, run: `black .`
+
 ## License
 
 `differentiable-robot-model` is released under the MIT license. See [LICENSE](LICENSE) for additional details about it.
