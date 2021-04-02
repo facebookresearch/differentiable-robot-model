@@ -1,0 +1,35 @@
+version: 2.1
+
+jobs:
+  install-and-test:
+    working_directory: ~/differentiable-robot-model
+    resource_class: small
+    docker:
+      - image: continuumio/miniconda3
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps9-{{ .Branch }}-{{ checksum "setup.py" }}
+      - run:
+          name: Setup env
+          command: |
+            apt-get update
+            [ -d ~/testenv ] || conda env create -p ~/testenv
+      - save_cache:
+          key: deps9-{{ .Branch }}-{{ checksum "setup.py" }}
+          paths:
+            - "~/testenv"
+      - run:
+          name: Run tests
+          command: |
+            conda init bash
+            source ~/.bashrc
+            conda activate ~/testenv
+            cd ~/differentiable-robot-model
+            pip install -e .
+            pytest
+
+workflows:
+  main:
+    jobs:
+      - install-and-test
