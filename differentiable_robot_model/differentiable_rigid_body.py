@@ -9,7 +9,10 @@ from .spatial_vector_algebra import (
 )
 
 from .spatial_vector_algebra import SpatialForceVec, SpatialMotionVec
-from .spatial_vector_algebra import DifferentiableSpatialRigidBodyInertia, LearnableSpatialRigidBodyInertia
+from .spatial_vector_algebra import (
+    DifferentiableSpatialRigidBodyInertia,
+    LearnableSpatialRigidBodyInertia,
+)
 
 import hydra
 
@@ -62,7 +65,9 @@ class DifferentiableRigidBody(torch.nn.Module):
         batch_size = q.shape[0]
 
         joint_ang_vel = qd @ self.joint_axis
-        self.joint_vel = SpatialMotionVec(torch.zeros_like(joint_ang_vel), joint_ang_vel)
+        self.joint_vel = SpatialMotionVec(
+            torch.zeros_like(joint_ang_vel), joint_ang_vel
+        )
 
         roll = self.rot_angles[0]
         pitch = self.rot_angles[1]
@@ -85,7 +90,9 @@ class DifferentiableRigidBody(torch.nn.Module):
     def update_joint_acc(self, qdd):
         # local z axis (w.r.t. joint coordinate frame):
         joint_ang_acc = qdd @ self.joint_axis
-        self.joint_acc = SpatialMotionVec(torch.zeros_like(joint_ang_acc), joint_ang_acc)
+        self.joint_acc = SpatialMotionVec(
+            torch.zeros_like(joint_ang_acc), joint_ang_acc
+        )
         return
 
     def get_joint_limits(self):
@@ -106,7 +113,9 @@ class LearnableRigidBody(DifferentiableRigidBody):
 
         super().__init__(rigid_body_params=gt_rigid_body_params, device=device)
 
-        self.inertia = LearnableSpatialRigidBodyInertia(learnable_rigid_body_config, gt_rigid_body_params)
+        self.inertia = LearnableSpatialRigidBodyInertia(
+            learnable_rigid_body_config, gt_rigid_body_params
+        )
         self.joint_damping = gt_rigid_body_params["joint_damping"]
 
         # kinematics parameters
@@ -120,4 +129,3 @@ class LearnableRigidBody(DifferentiableRigidBody):
             self.rot_angles = torch.nn.Parameter(gt_rigid_body_params["rot_angles"])
 
         return
-

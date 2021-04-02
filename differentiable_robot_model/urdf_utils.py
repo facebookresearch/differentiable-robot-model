@@ -5,7 +5,7 @@ from urdf_parser_py.urdf import URDF
 
 
 class URDFRobotModel(object):
-    def __init__(self, urdf_path, device='cpu'):
+    def __init__(self, urdf_path, device="cpu"):
         self.robot = URDF.from_xml_file(urdf_path)
         self._device = device
 
@@ -22,8 +22,8 @@ class URDFRobotModel(object):
 
     def get_body_parameters_from_urdf(self, i, link):
         body_params = {}
-        body_params['joint_id'] = i
-        body_params['link_name'] = link.name
+        body_params["joint_id"] = i
+        body_params["link_name"] = link.name
 
         if i == 0:
             rot_angles = torch.zeros(3).to(self._device)
@@ -46,28 +46,34 @@ class URDFRobotModel(object):
             joint_limits = None
             joint_damping = torch.zeros(1)
             joint_axis = torch.zeros((1, 3))
-            if joint_type != 'fixed':
-                joint_limits = {'effort': joint.limit.effort,
-                                'lower': joint.limit.lower,
-                                'upper': joint.limit.upper,
-                                'velocity': joint.limit.velocity}
+            if joint_type != "fixed":
+                joint_limits = {
+                    "effort": joint.limit.effort,
+                    "lower": joint.limit.lower,
+                    "upper": joint.limit.upper,
+                    "velocity": joint.limit.velocity,
+                }
                 try:
                     joint_damping = torch.Tensor([joint.dynamics.damping])
                 except AttributeError:
                     joint_damping = torch.Tensor([0.0])
                 joint_axis = torch.Tensor(joint.axis).reshape(1, 3)
 
-        body_params['rot_angles'] = rot_angles
-        body_params['trans'] = trans
-        body_params['joint_name'] = joint_name
-        body_params['joint_type'] = joint_type
-        body_params['joint_limits'] = joint_limits
-        body_params['joint_damping'] = joint_damping
-        body_params['joint_axis'] = joint_axis
+        body_params["rot_angles"] = rot_angles
+        body_params["trans"] = trans
+        body_params["joint_name"] = joint_name
+        body_params["joint_type"] = joint_type
+        body_params["joint_limits"] = joint_limits
+        body_params["joint_damping"] = joint_damping
+        body_params["joint_axis"] = joint_axis
 
         if link.inertial is not None:
             mass = torch.Tensor([link.inertial.mass])
-            com = torch.Tensor(link.inertial.origin.position).reshape((1, 3)).to(self._device)
+            com = (
+                torch.Tensor(link.inertial.origin.position)
+                .reshape((1, 3))
+                .to(self._device)
+            )
 
             inert_mat = torch.zeros((3, 3)).to(self._device)
             inert_mat[0, 0] = link.inertial.inertia.ixx
@@ -81,14 +87,13 @@ class URDFRobotModel(object):
             inert_mat[2, 2] = link.inertial.inertia.izz
 
             inert_mat = inert_mat.unsqueeze(0)
-            body_params['mass'] = mass
-            body_params['com'] = com
-            body_params['inertia_mat'] = inert_mat
+            body_params["mass"] = mass
+            body_params["com"] = com
+            body_params["inertia_mat"] = inert_mat
         else:
-            body_params['mass'] = None
-            body_params['com'] = None
-            body_params['inertia_mat'] = None
+            body_params["mass"] = None
+            body_params["com"] = None
+            body_params["inertia_mat"] = None
             print("no dynamics information for link: {}".format(link.name))
 
         return body_params
-
