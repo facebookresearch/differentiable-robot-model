@@ -33,6 +33,8 @@ test_data = [
         ],
     ),
 ]
+
+
 ################
 # Dataclasses
 ################
@@ -182,6 +184,7 @@ def setup_dict(request, test_info, sim, robot_model):
 ################
 # Act
 ################
+
 # Helper functions
 def extract_setup_dict(setup_dict):
     robot_model = setup_dict["robot_model"]
