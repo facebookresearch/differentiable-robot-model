@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   install-and-test:
     working_directory: ~/differentiable-robot-model
-    resource_class: small
+    resource_class: large
     docker:
       - image: continuumio/miniconda3
     steps:
@@ -13,7 +13,6 @@ jobs:
       - run:
           name: Setup env
           command: |
-            apt-get update
             [ -d ~/testenv ] || conda create -p ~/testenv
       - save_cache:
           key: deps9-{{ .Branch }}-{{ checksum "setup.py" }}
