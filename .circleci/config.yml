@@ -14,7 +14,7 @@ jobs:
           name: Setup env
           command: |
             apt-get update
-            [ -d ~/testenv ] || conda env create -p ~/testenv
+            [ -d ~/testenv ] || conda create -p ~/testenv
       - save_cache:
           key: deps9-{{ .Branch }}-{{ checksum "setup.py" }}
           paths:
