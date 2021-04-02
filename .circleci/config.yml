@@ -9,7 +9,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps9-{{ .Branch }}-{{ checksum "setup.py" }}
+          key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           name: Setup env
           command: |
@@ -18,9 +18,10 @@ jobs:
             source ~/.bashrc
             conda activate ~/testenv
             pip install -r requirements.txt
+            pip install pybullet
             pip install pytest
       - save_cache:
-          key: deps9-{{ .Branch }}-{{ checksum "setup.py" }}
+          key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
             - "~/testenv"
       - run:
