@@ -35,9 +35,9 @@ test_data = [
     (
         "allegro/urdf/allegro_hand_description_left.urdf",
         [
-            (3, "link_11.0"), 
             (4, "link_11.0_tip"), 
             (9, "link_7.0_tip"), 
+            (14, "link_3.0_tip"), 
             (19, "link_15.0_tip"),
         ]
     ),
