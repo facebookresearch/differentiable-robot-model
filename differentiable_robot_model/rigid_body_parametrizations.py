@@ -9,7 +9,9 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 
 
 class NonNegativeScalarNet(torch.nn.Module):
-    def __init__(self, bias=0.0, init_param_std=1.0, init_param=None, is_initializing_params=True):
+    def __init__(
+        self, bias=0.0, init_param_std=1.0, init_param=None, is_initializing_params=True
+    ):
         self._bias = bias
         super().__init__()
         if (init_param is None) or (not is_initializing_params):
@@ -116,7 +118,7 @@ class CholeskyNet(torch.nn.Module):
         raw_l = self.get_raw_l(raw_l_input)
         l = raw_l.new_zeros(raw_l.shape)
         l[
-        :, : self._qdim
+            :, : self._qdim
         ] += (
             self._bias
         )  # add bias to ensure positive definiteness of the resulting inertia matrix
@@ -142,6 +144,7 @@ class CholeskyNet(torch.nn.Module):
         L = self.get_L(l)
         SPSD = L @ L.transpose(-2, -1)
         return SPSD, l
+
 
 class TriangParam3DInertiaMatrixNet(torch.nn.Module):
     """
@@ -329,9 +332,8 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
             raw_l_input=raw_l_input
         )
         spsd_3d_cov_inertia_matrix = spsd_3d_cov_inertia_matrix.squeeze()
-        spd_3d_cov_inertia_matrix = (
-            spsd_3d_cov_inertia_matrix
-            + (self.spd_3d_cov_inertia_mat_diag_bias * torch.eye(3))
+        spd_3d_cov_inertia_matrix = spsd_3d_cov_inertia_matrix + (
+            self.spd_3d_cov_inertia_mat_diag_bias * torch.eye(3)
         )
         inertia_matrix = spd_3d_cov_inertia_matrix.new_zeros((3, 3))
         inertia_matrix[0, 0] = (
@@ -386,9 +388,8 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
         [spsd_3d_inertia_matrix, _] = super().get_symm_pos_semi_def_matrix_and_l(
             raw_l_input=raw_l_input
         )
-        spd_3d_inertia_matrix = (
-            spsd_3d_inertia_matrix.squeeze()
-            + (self.spd_3d_inertia_mat_diag_bias * torch.eye(3))
+        spd_3d_inertia_matrix = spsd_3d_inertia_matrix.squeeze() + (
+            self.spd_3d_inertia_mat_diag_bias * torch.eye(3)
         )
         return spd_3d_inertia_matrix
 

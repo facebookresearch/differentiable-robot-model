@@ -34,7 +34,21 @@ jobs:
             pip install -e .
             pytest
 
+  formatting:
+    working_directory: ~/differentiable-robot-model
+    resource_class: large
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - run:
+          name: Run black formatting
+          command: |
+            pip install black
+            black --check .
+
 workflows:
   main:
     jobs:
       - install-and-test
+      - formatting

@@ -12,6 +12,7 @@ from .spatial_vector_algebra import SpatialMotionVec, SpatialForceVec
 from .urdf_utils import URDFRobotModel
 
 import diff_robot_data
+
 robot_description_folder = diff_robot_data.__path__[0]
 
 
@@ -20,9 +21,7 @@ class DifferentiableRobotModel(torch.nn.Module):
     Differentiable Robot Model
     """
 
-    def __init__(
-        self, urdf_path: str, learnable_rigid_body_config=None, name=""
-    ):
+    def __init__(self, urdf_path: str, learnable_rigid_body_config=None, name=""):
 
         super().__init__()
 
@@ -30,9 +29,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         self._device = "cpu"
 
-        self._urdf_model = URDFRobotModel(
-            urdf_path=urdf_path, device=self._device
-        )
+        self._urdf_model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
         self._bodies = torch.nn.ModuleList()
         self._n_dofs = 0
         self._controlled_joints = []
@@ -46,7 +43,9 @@ class DifferentiableRobotModel(torch.nn.Module):
 
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
 
-            if (learnable_rigid_body_config is not None) and (link.name in learnable_rigid_body_config.learnable_links):
+            if (learnable_rigid_body_config is not None) and (
+                link.name in learnable_rigid_body_config.learnable_links
+            ):
                 body = LearnableRigidBody(
                     learnable_rigid_body_config=learnable_rigid_body_config,
                     gt_rigid_body_params=rigid_body_params,
@@ -93,7 +92,9 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         # we assume a non-moving base
         parent_body = self._bodies[0]
-        parent_body.vel = SpatialMotionVec(torch.zeros((batch_size, 3)), torch.zeros((batch_size, 3)))
+        parent_body.vel = SpatialMotionVec(
+            torch.zeros((batch_size, 3)), torch.zeros((batch_size, 3))
+        )
 
         # propagate the new joint state through the kinematic chain to update bodies position/velocities
         for i in range(1, len(self._bodies)):
@@ -164,7 +165,9 @@ class DifferentiableRobotModel(torch.nn.Module):
             acc_parent_body = parent_body.acc.transform(inv_pose)
             # body velocity cross joint vel
             tmp = body.vel.cross_motion_vec(body.joint_vel)
-            body.acc = acc_parent_body.add_motion_vec(body.joint_acc).add_motion_vec(tmp)
+            body.acc = acc_parent_body.add_motion_vec(body.joint_acc).add_motion_vec(
+                tmp
+            )
 
         # reset all forces for backward pass
         for i in range(0, len(self._bodies)):
@@ -262,7 +265,11 @@ class DifferentiableRobotModel(torch.nn.Module):
         return force
 
     def compute_non_linear_effects(
-        self, q: torch.Tensor, qd: torch.Tensor, include_gravity: Optional[bool] = True, use_damping: Optional[bool] = True
+        self,
+        q: torch.Tensor,
+        qd: torch.Tensor,
+        include_gravity: Optional[bool] = True,
+        use_damping: Optional[bool] = True,
     ) -> torch.Tensor:
         r"""
 
@@ -277,10 +284,15 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         """
         zero_qdd = q.new_zeros(q.shape)
-        return self.compute_inverse_dynamics(q, qd, zero_qdd, include_gravity, use_damping)
+        return self.compute_inverse_dynamics(
+            q, qd, zero_qdd, include_gravity, use_damping
+        )
 
     def compute_lagrangian_inertia_matrix(
-        self, q: torch.Tensor, include_gravity: Optional[bool] = True, use_damping: Optional[bool] = True
+        self,
+        q: torch.Tensor,
+        include_gravity: Optional[bool] = True,
+        use_damping: Optional[bool] = True,
     ) -> torch.Tensor:
         r"""
 
@@ -307,7 +319,11 @@ class DifferentiableRobotModel(torch.nn.Module):
             [
                 (
                     self.compute_inverse_dynamics(
-                        q, zero_qd, identity_tensor[:, :, j], include_gravity, use_damping
+                        q,
+                        zero_qd,
+                        identity_tensor[:, :, j],
+                        include_gravity,
+                        use_damping,
                     )
                     - gravity_term
                 )
@@ -323,7 +339,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         qd: torch.Tensor,
         f: torch.Tensor,
         include_gravity: Optional[bool] = True,
-        use_damping: Optional[bool] = True
+        use_damping: Optional[bool] = True,
     ) -> torch.Tensor:
         r"""
         Computes next qdd by solving the Euler-Lagrange equation
@@ -352,12 +368,12 @@ class DifferentiableRobotModel(torch.nn.Module):
         return qdd
 
     def compute_forward_dynamics(
-            self,
-            q: torch.Tensor,
-            qd: torch.Tensor,
-            f: torch.Tensor,
-            include_gravity: Optional[bool] = True,
-            use_damping: Optional[bool] = False,
+        self,
+        q: torch.Tensor,
+        qd: torch.Tensor,
+        f: torch.Tensor,
+        include_gravity: Optional[bool] = True,
+        use_damping: Optional[bool] = False,
     ) -> torch.Tensor:
         r"""
         Computes next qdd via the articulated body algorithm (see Featherstones Rigid body dynamics page 132)
@@ -408,13 +424,14 @@ class DifferentiableRobotModel(torch.nn.Module):
         for i in range(len(self._bodies) - 1, 0, -1):
             body = self._bodies[i]
 
-            S = SpatialMotionVec(lin_motion=torch.zeros((batch_size, 3)),
-                                 ang_motion=body.joint_axis.repeat((batch_size, 1)))
+            S = SpatialMotionVec(
+                lin_motion=torch.zeros((batch_size, 3)),
+                ang_motion=body.joint_axis.repeat((batch_size, 1)),
+            )
             body.S = S
             # we take the first inertia matrix, since it doesn't matter
             Utmp = body.IA[0].matmul(S.get_vector().transpose(-2, -1)).transpose(-2, -1)
-            body.U = SpatialForceVec(lin_force=Utmp[:, 3:],
-                                     ang_force=Utmp[:, :3])
+            body.U = SpatialForceVec(lin_force=Utmp[:, 3:], ang_force=Utmp[:, :3])
             body.d = S.dot(body.U)
             if body.joint_idx is not None:
                 body.u = f[:, body.joint_idx] - body.pA.dot(S)
@@ -427,16 +444,21 @@ class DifferentiableRobotModel(torch.nn.Module):
             if parent_idx > 0:
                 parent_body = self._bodies[parent_idx]
                 U = body.U.get_vector()
-                Ud = U/(body.d.view(batch_size, 1) + 1e-37) # add smoothing values in case of zero mass
+                Ud = U / (
+                    body.d.view(batch_size, 1) + 1e-37
+                )  # add smoothing values in case of zero mass
                 c = body.c.get_vector()
 
                 # IA is of size [batch_size x 6 x 6]
-                IA = body.IA - torch.bmm(U.view(batch_size, 6, 1), Ud.view(batch_size, 1, 6))
+                IA = body.IA - torch.bmm(
+                    U.view(batch_size, 6, 1), Ud.view(batch_size, 1, 6)
+                )
 
                 tmp = torch.bmm(IA, c.view(batch_size, 6, 1)).squeeze(dim=2)
-                tmps = SpatialForceVec(lin_force=tmp[:, 3:],
-                                       ang_force=tmp[:, :3])
-                ud = body.u/(body.d + 1e-37) # add smoothing values in case of zero mass
+                tmps = SpatialForceVec(lin_force=tmp[:, 3:], ang_force=tmp[:, :3])
+                ud = body.u / (
+                    body.d + 1e-37
+                )  # add smoothing values in case of zero mass
                 uu = body.U.multiply(ud)
                 pa = body.pA.add_force_vec(tmps).add_force_vec(uu)
 
@@ -444,7 +466,9 @@ class DifferentiableRobotModel(torch.nn.Module):
 
                 # transform is of shape 6x6 and shared across all items in a batch
                 transform_mat = joint_pose.to_matrix().repeat((batch_size, 1, 1))
-                parent_body.IA += torch.bmm(transform_mat.transpose(-2, -1), IA).bmm(transform_mat)
+                parent_body.IA += torch.bmm(transform_mat.transpose(-2, -1), IA).bmm(
+                    transform_mat
+                )
                 parent_body.pA = parent_body.pA.add_force_vec(pa.transform(joint_pose))
 
         base_acc = SpatialMotionVec(lin_motion=base_lin_acc, ang_motion=base_ang_acc)
@@ -470,7 +494,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             # Joint acc
             if i in self._controlled_joints:
                 joint_idx = self._controlled_joints.index(i)
-                qdd[:, joint_idx] = (1.0/body.d) * (body.u - body.U.dot(body.acc))
+                qdd[:, joint_idx] = (1.0 / body.d) * (body.u - body.U.dot(body.acc))
                 body.acc = body.acc.add_motion_vec(body.S.multiply(qdd[:, joint_idx]))
 
         return qdd
@@ -496,7 +520,9 @@ class DifferentiableRobotModel(torch.nn.Module):
             [3, self._n_dofs]
         )
 
-        joint_id = self._urdf_model.find_joint_of_body(link_name) + 1 # joint_id starts at index 0 for link 1 not base link
+        joint_id = (
+            self._urdf_model.find_joint_of_body(link_name) + 1
+        )  # joint_id starts at index 0 for link 1 not base link
         while link_name != self._bodies[0].name:
             if joint_id in self._controlled_joints:
                 i = self._controlled_joints.index(joint_id)
@@ -505,7 +531,7 @@ class DifferentiableRobotModel(torch.nn.Module):
                 pose = self._bodies[idx].pose
                 axis = self._bodies[idx].joint_axis
                 p_i = pose.translation()[0]
-                z_i = pose.rotation()[0,:,:] @ axis.squeeze()
+                z_i = pose.rotation()[0, :, :] @ axis.squeeze()
                 lin_jac[:, i] = torch.cross(z_i, p_e - p_i)
                 ang_jac[:, i] = z_i
 
@@ -557,7 +583,12 @@ class DifferentiableRobotModel(torch.nn.Module):
 
 
 class LearnableRigidBodyConfig:
-    def __init__(self, learnable_links=[], learnable_kinematics_params=[], learnable_dynamics_params=[]):
+    def __init__(
+        self,
+        learnable_links=[],
+        learnable_kinematics_params=[],
+        learnable_dynamics_params=[],
+    ):
         self.learnable_links = learnable_links
         self.learnable_kinematics_params = learnable_kinematics_params
         self.learnable_dynamics_params = learnable_dynamics_params
@@ -583,7 +614,7 @@ class DifferentiableFrankaPanda(DifferentiableRobotModel):
 
 class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
     def __init__(self):
-        rel_urdf_path ="2link_robot.urdf"
+        rel_urdf_path = "2link_robot.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = LearnableRigidBodyConfig()
         self.name = "diff_2d_robot"
