@@ -342,7 +342,7 @@ class TestRobotModel:
         dt = 1.0 / 240.0
         controlled_joints = [i-1 for i in robot_model._controlled_joints]
 
-        if not use_damping:
+        if not use_damping: # update joint damping
             for link_idx in range(sim.num_joints):
                 p.changeDynamics(
                     sim.robot_id,
