@@ -26,9 +26,9 @@ test_data = [
     (
         "allegro/urdf/allegro_hand_description_left.urdf",
         [
-            (3, "link_11.0"),
             (4, "link_11.0_tip"),
             (9, "link_7.0_tip"),
+            (14, "link_3.0_tip"),
             (19, "link_15.0_tip"),
         ],
     ),
@@ -272,7 +272,8 @@ class TestRobotModel:
                 model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
             )
 
-    def test_inverse_dynamics(self, request, setup_dict):
+    @pytest.mark.parametrize("use_damping", [True, False])
+    def test_inverse_dynamics(self, request, setup_dict, use_damping):
         robot_model, sim, num_dofs, test_case = extract_setup_dict(setup_dict)
 
         # Bullet sim
@@ -293,8 +294,19 @@ class TestRobotModel:
             torch.Tensor(test_case.joint_vel).reshape(1, num_dofs),
             torch.Tensor(test_case.joint_acc).reshape(1, num_dofs),
             include_gravity=True,
-            use_damping=False,  # pybullet does not include damping/viscous friction in their inverse dynamics call
+            use_damping=use_damping,
         )
+
+        if use_damping:
+            # if we have non-zero joint damping, we'll have to subtract the damping term from our predicted torques,
+            # because pybullet does not include damping/viscous friction in their inverse dynamics call
+            damping_const = torch.zeros(1, num_dofs)
+            qd = torch.Tensor(test_case.joint_vel).reshape(1, num_dofs)
+            for i in range(robot_model._n_dofs):
+                idx = robot_model._controlled_joints[i]
+                damping_const[:, i] = robot_model._bodies[idx].get_joint_damping_const()
+            damping_term = damping_const.repeat(1, 1) * qd
+            model_torques -= damping_term
 
         # Compare
         assert np.allclose(
@@ -326,12 +338,24 @@ class TestRobotModel:
             inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
         )
 
-    def test_forward_dynamics(self, request, setup_dict):
+    @pytest.mark.parametrize("use_damping", [True, False])
+    def test_forward_dynamics(self, request, setup_dict, use_damping):
         robot_model, sim, num_dofs, test_case = extract_setup_dict(setup_dict)
 
         # Bullet sim
         dt = 1.0 / 240.0
         controlled_joints = [i - 1 for i in robot_model._controlled_joints]
+
+        if not use_damping:  # update joint damping
+            for link_idx in range(sim.num_joints):
+                p.changeDynamics(
+                    sim.robot_id,
+                    link_idx,
+                    linearDamping=0.0,
+                    angularDamping=0.0,
+                    jointDamping=0.0,
+                    physicsClientId=sim.pc_id,
+                )
 
         p.setJointMotorControlArray(  # activating torque control
             bodyIndex=sim.robot_id,
@@ -381,9 +405,15 @@ class TestRobotModel:
             torch.Tensor(test_case.joint_vel).reshape(1, num_dofs),
             torch.Tensor(bullet_tau).reshape(1, num_dofs),
             include_gravity=True,
-            use_damping=True,
+            use_damping=use_damping,
         )
 
         # Compare
         model_qdd = np.asarray(model_qdd.detach().squeeze())
         assert np.allclose(model_qdd, qdd, atol=1e-7)
+
+        if not use_damping:
+            # we can only test this if joint damping is zero,
+            # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
+            # "inverse" of each other
+            assert np.allclose(model_qdd, np.asarray(test_case.joint_acc), atol=1e-7)
