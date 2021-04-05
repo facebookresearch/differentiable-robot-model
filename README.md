@@ -1,6 +1,7 @@
 # differentiable robot model
 
-[![CircleCI](https://circleci.com/gh/facebookresearch/differentiable-robot-model/tree/master.svg?style=svg&circle-token=9bfa34219fadf44bb2b800d9a9bad3e00815fedf)](https://circleci.com/gh/facebookresearch/differentiable-robot-model/tree/master)
+[![CircleCI](https://circleci.com/gh/facebookresearch/differentiable-robot-model/tree/master.svg?style=shield&circle-token=9bfa34219fadf44bb2b800d9a9bad3e00815fedf)](https://circleci.com/gh/facebookresearch/differentiable-robot-model/tree/master)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Differentiable and learnable robot model. Our differentiable robot model implements computations such as 
 forward kinematics and inverse dynamics, in a fully differentiable way. We also allow to specify  
