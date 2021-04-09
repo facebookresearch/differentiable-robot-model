@@ -7,9 +7,10 @@ Differentiable and learnable robot model. Our differentiable robot model impleme
 forward kinematics and inverse dynamics, in a fully differentiable way. We also allow to specify  
 parameters (kinematics or dynamics parameters), which can then be identified from data (see examples folder).
 
-Currently, our code should work with any kinematic chain. This package comes with wrappers specifically for:
+Currently, our code should work with any kinematic trees. This package comes with wrappers specifically for:
 * Kuka iiwa
 * Franka Panda
+* Allegro Hand
 * a 2-link toy robot
 
 
