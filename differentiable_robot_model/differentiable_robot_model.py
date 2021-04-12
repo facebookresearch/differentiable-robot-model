@@ -20,10 +20,15 @@ def tensor_check(function):
     """
     A decorator for checking the device and dtype of input tensors
     """
+
     def check(arg, obj):
         if type(arg) is torch.Tensor:
-            assert arg.dtype is obj._dtype, f"Input argument of different dtype as module: {arg}"
-            assert arg.device == obj._device, f"Input argument of different device as module: {arg}"
+            assert (
+                arg.dtype is obj._dtype
+            ), f"Input argument of different dtype as module: {arg}"
+            assert (
+                arg.device == obj._device
+            ), f"Input argument of different device as module: {arg}"
 
     def wrapper(self, *args, **kwargs):
         for arg in args:
@@ -43,7 +48,14 @@ class DifferentiableRobotModel(torch.nn.Module):
     Differentiable Robot Model
     """
 
-    def __init__(self, urdf_path: str, learnable_rigid_body_config=None, name="", dtype=None, device=None):
+    def __init__(
+        self,
+        urdf_path: str,
+        learnable_rigid_body_config=None,
+        name="",
+        dtype=None,
+        device=None,
+    ):
 
         super().__init__()
 
