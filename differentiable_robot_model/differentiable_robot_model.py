@@ -16,18 +16,41 @@ import diff_robot_data
 robot_description_folder = diff_robot_data.__path__[0]
 
 
+def tensor_check(function):
+    """
+    A decorator for checking the device and dtype of input tensors
+    """
+    def check(arg, obj):
+        if type(arg) is torch.Tensor:
+            assert arg.dtype is obj._dtype, f"Input argument of different dtype as module: {arg}"
+            assert arg.device == obj._device, f"Input argument of different device as module: {arg}"
+
+    def wrapper(self, *args, **kwargs):
+        for arg in args:
+            check(arg, self)
+
+        for key in kwargs.keys():
+            arg = kwargs[key]
+            check(arg, self)
+
+        return function(self, *args, **kwargs)
+
+    return wrapper
+
+
 class DifferentiableRobotModel(torch.nn.Module):
     """
     Differentiable Robot Model
     """
 
-    def __init__(self, urdf_path: str, learnable_rigid_body_config=None, name=""):
+    def __init__(self, urdf_path: str, learnable_rigid_body_config=None, name="", dtype=None, device=None):
 
         super().__init__()
 
         self.name = name
 
-        self._device = "cpu"
+        self._dtype = dtype if dtype is not None else torch.get_default_dtype()
+        self._device = device if device is not None else torch.device("cpu")
 
         self._urdf_model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
         self._bodies = torch.nn.ModuleList()
@@ -65,6 +88,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             self._bodies.append(body)
             self._name_to_idx_map[body.name] = i
 
+    @tensor_check
     def update_kinematic_state(self, q: torch.Tensor, qd: torch.Tensor) -> None:
         r"""
 
@@ -120,6 +144,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             body.vel = body.joint_vel.add_motion_vec(new_vel)
         return
 
+    @tensor_check
     def compute_forward_kinematics(
         self, q: torch.Tensor, link_name: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -141,6 +166,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         rot = pose.get_quaternion()
         return pos, rot
 
+    @tensor_check
     def iterative_newton_euler(self, base_acc: SpatialMotionVec) -> None:
         r"""
 
@@ -195,6 +221,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return
 
+    @tensor_check
     def compute_inverse_dynamics(
         self,
         q: torch.Tensor,
@@ -264,6 +291,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return force
 
+    @tensor_check
     def compute_non_linear_effects(
         self,
         q: torch.Tensor,
@@ -288,6 +316,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             q, qd, zero_qdd, include_gravity, use_damping
         )
 
+    @tensor_check
     def compute_lagrangian_inertia_matrix(
         self,
         q: torch.Tensor,
@@ -333,6 +362,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         )
         return H
 
+    @tensor_check
     def compute_forward_dynamics_old(
         self,
         q: torch.Tensor,
@@ -367,6 +397,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return qdd
 
+    @tensor_check
     def compute_forward_dynamics(
         self,
         q: torch.Tensor,
@@ -499,6 +530,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return qdd
 
+    @tensor_check
     def compute_endeffector_jacobian(
         self, q: torch.Tensor, link_name: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
