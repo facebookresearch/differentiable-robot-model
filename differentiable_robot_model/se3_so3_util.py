@@ -1,4 +1,6 @@
 """
+SE3 SO3 utilities
+====================================
 @author: gsutanto
 @comment: implemented from "A Mathematical Introduction to Robotic Manipulation"
           textbook by Murray et al., page 413-414

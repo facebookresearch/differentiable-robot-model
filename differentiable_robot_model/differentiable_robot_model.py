@@ -1,4 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+"""
+Differentiable robot model class
+====================================
+TODO
+"""
+
 from typing import List, Tuple, Dict, Optional
 import os
 
@@ -19,6 +25,8 @@ robot_description_folder = diff_robot_data.__path__[0]
 class DifferentiableRobotModel(torch.nn.Module):
     """
     Differentiable Robot Model
+    ====================================
+    TODO
     """
 
     def __init__(self, urdf_path: str, learnable_rigid_body_config=None, name=""):
