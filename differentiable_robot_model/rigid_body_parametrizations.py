@@ -1,4 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+"""
+Rigid body parametrizations
+====================================
+TODO
+"""
 import torch
 import numpy as np
 import math

@@ -1,3 +1,8 @@
+"""
+Spatial vector algebra
+====================================
+TODO
+"""
 from __future__ import annotations
 import torch
 import hydra

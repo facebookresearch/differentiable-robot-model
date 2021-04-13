@@ -1,4 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+"""
+Differentiable rigid body
+====================================
+TODO
+"""
 
 import torch
 from .spatial_vector_algebra import (

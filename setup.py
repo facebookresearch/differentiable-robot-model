@@ -48,6 +48,8 @@ install_requires = [
     "pyquaternion >= 0.9.9",
     "hydra-core >= 1.0.3",
     "urdf_parser_py >= 0.0.3",
+    "Sphinx >= 3.5.4",
+    "recommonmark >= 0.7.1",
 ]
 # run setup
 setup(
