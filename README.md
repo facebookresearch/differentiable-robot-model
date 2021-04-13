@@ -62,6 +62,10 @@ in our L4DC paper
 running `pytest` in the top-level folder will run our differentiable robot model tests, 
 which compare computations against pybullet.
 
+## Documentation
+
+This uses Sphinx to automatically generate readable documentation from docstrings. Simply call `make html` inside `./docs` to regenerate docs.
+
 
 ## Code Contribution
 
