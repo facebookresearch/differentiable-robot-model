@@ -63,8 +63,8 @@ running `pytest` in the top-level folder will run our differentiable robot model
 which compare computations against pybullet.
 
 ## Documentation
-
-This uses Sphinx to automatically generate readable documentation from docstrings. Simply call `make html` inside `./docs` to regenerate docs.
+You can find the documentation here:  [docs](https://fmeier.github.io/differentiable-robot-model/)
+It was created using Sphinx to automatically generate readable documentation from docstrings. Simply call `make html` inside `./docs` to regenerate docs.
 
 
 ## Code Contribution
