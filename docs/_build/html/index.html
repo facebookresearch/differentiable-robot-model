@@ -1,41 +1,215 @@
 
+
 <!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Differentiable Robot Model Documentation &mdash; differentiable-robot-model  documentation</title>
+  
 
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Differentiable Robot Model &#8212; differentiable-robot-model  documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
    
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
-  </head><body>
-  
-
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
           
 
-          <div class="body" role="main">
+          
+            <a href="#" class="icon icon-home"> differentiable-robot-model
+          
+
+          
+          </a>
+
+          
             
-  <div class="section" id="differentiable-robot-model">
-<h1>Differentiable Robot Model<a class="headerlink" href="#differentiable-robot-model" title="Permalink to this headline">¶</a></h1>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Differentiable Robot Model Documentation</a><ul>
+<li><a class="reference internal" href="#module-differentiable_robot_model">Module contents</a><ul>
+<li><a class="reference internal" href="#differentiable-robot-model">Differentiable Robot Model</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-differentiable_robot_model.data_generation_utils">differentiable_robot_model.data_generation_utils module</a><ul>
+<li><a class="reference internal" href="#data-generation-utils">Data generation utils</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-differentiable_robot_model.differentiable_rigid_body">differentiable_robot_model.differentiable_rigid_body module</a><ul>
+<li><a class="reference internal" href="#differentiable-rigid-body">Differentiable rigid body</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-differentiable_robot_model.differentiable_robot_model">differentiable_robot_model.differentiable_robot_model module</a><ul>
+<li><a class="reference internal" href="#differentiable-robot-model-class">Differentiable robot model class</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-differentiable_robot_model.rigid_body_parametrizations">differentiable_robot_model.rigid_body_parametrizations module</a><ul>
+<li><a class="reference internal" href="#rigid-body-parametrizations">Rigid body parametrizations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-differentiable_robot_model.se3_so3_util">differentiable_robot_model.se3_so3_util module</a><ul>
+<li><a class="reference internal" href="#se3-so3-utilities">SE3 SO3 utilities</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-differentiable_robot_model.spatial_vector_algebra">differentiable_robot_model.spatial_vector_algebra module</a><ul>
+<li><a class="reference internal" href="#spatial-vector-algebra">Spatial vector algebra</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-differentiable_robot_model.urdf_utils">differentiable_robot_model.urdf_utils module</a><ul>
+<li><a class="reference internal" href="#urdf-utils">URDF Utils</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-differentiable_robot_model.utils">differentiable_robot_model.utils module</a><ul>
+<li><a class="reference internal" href="#utils">Utils</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">differentiable-robot-model</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Differentiable Robot Model Documentation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="differentiable-robot-model-documentation">
+<h1>Differentiable Robot Model Documentation<a class="headerlink" href="#differentiable-robot-model-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Our differentiable robot model library implements computations such as
+forward kinematics and inverse dynamics, in a fully differentiable way. We also allow to specify
+parameters (kinematics or dynamics parameters), which can then be identified from data (see examples folder).</p>
+<p>Currently, our code should work with any kinematic trees. This package comes with wrappers specifically for:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Kuka iiwa</p></li>
+<li><p>Franka Panda</p></li>
+<li><p>Allegro Hand</p></li>
+<li><p>a 2-link toy robot</p></li>
+</ul>
+</div></blockquote>
 <div class="section" id="module-differentiable_robot_model">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-differentiable_robot_model" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="id1">
-<h3>Differentiable Robot Model<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="differentiable-robot-model">
+<h3>Differentiable Robot Model<a class="headerlink" href="#differentiable-robot-model" title="Permalink to this headline">¶</a></h3>
 <p>Differentiable and learnable robot model.</p>
 </div>
 </div>
@@ -50,7 +224,7 @@
 <dl class="py class">
 <dt id="differentiable_robot_model.data_generation_utils.ForwardDynamicsDataset">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">differentiable_robot_model.data_generation_utils.</span></code><code class="sig-name descname"><span class="pre">ForwardDynamicsDataset</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.data_generation_utils.ForwardDynamicsDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.dataset.T_co</span></code>]</p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
 <dl class="py method">
 <dt id="differentiable_robot_model.data_generation_utils.ForwardDynamicsDataset.var">
 <code class="sig-name descname"><span class="pre">var</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.data_generation_utils.ForwardDynamicsDataset.var" title="Permalink to this definition">¶</a></dt>
@@ -61,7 +235,7 @@
 <dl class="py class">
 <dt id="differentiable_robot_model.data_generation_utils.InverseDynamicsDataset">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">differentiable_robot_model.data_generation_utils.</span></code><code class="sig-name descname"><span class="pre">InverseDynamicsDataset</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.data_generation_utils.InverseDynamicsDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.dataset.T_co</span></code>]</p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
 <dl class="py method">
 <dt id="differentiable_robot_model.data_generation_utils.InverseDynamicsDataset.var">
 <code class="sig-name descname"><span class="pre">var</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.data_generation_utils.InverseDynamicsDataset.var" title="Permalink to this definition">¶</a></dt>
@@ -411,16 +585,7 @@ WITHOUT adding positive bias (yet) to the components of raw_l that corresponds t
 <dl class="py method">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.CovParameterized3DInertiaMatrixNet.forward">
 <code class="sig-name descname"><span class="pre">forward</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.rigid_body_parametrizations.CovParameterized3DInertiaMatrixNet.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.CovParameterized3DInertiaMatrixNet.training">
@@ -458,16 +623,7 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="py method">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.NoStructureNet.forward">
 <code class="sig-name descname"><span class="pre">forward</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.rigid_body_parametrizations.NoStructureNet.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.NoStructureNet.training">
@@ -483,16 +639,7 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="py method">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.NonNegativeScalarNet.forward">
 <code class="sig-name descname"><span class="pre">forward</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.rigid_body_parametrizations.NonNegativeScalarNet.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.NonNegativeScalarNet.training">
@@ -508,16 +655,7 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="py method">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.PositiveMassValue.forward">
 <code class="sig-name descname"><span class="pre">forward</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.rigid_body_parametrizations.PositiveMassValue.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.PositiveMassValue.training">
@@ -582,16 +720,7 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="py method">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.SymmPosDef3DInertiaMatrixNet.forward">
 <code class="sig-name descname"><span class="pre">forward</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.rigid_body_parametrizations.SymmPosDef3DInertiaMatrixNet.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.SymmPosDef3DInertiaMatrixNet.training">
@@ -608,16 +737,7 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="py method">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.TriangParam3DInertiaMatrixNet.forward">
 <code class="sig-name descname"><span class="pre">forward</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.rigid_body_parametrizations.TriangParam3DInertiaMatrixNet.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.TriangParam3DInertiaMatrixNet.training">
@@ -633,16 +753,7 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="py method">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.UnconstrainedMassValue.forward">
 <code class="sig-name descname"><span class="pre">forward</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.rigid_body_parametrizations.UnconstrainedMassValue.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="differentiable_robot_model.rigid_body_parametrizations.UnconstrainedMassValue.training">
@@ -834,7 +945,7 @@ registered hooks while the latter silently ignores them.</p>
 
 <dl class="py class">
 <dt id="differentiable_robot_model.spatial_vector_algebra.SpatialForceVec">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">differentiable_robot_model.spatial_vector_algebra.</span></code><code class="sig-name descname"><span class="pre">SpatialForceVec</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lin_force</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">tensor([[0.,</span> <span class="pre">0.,</span> <span class="pre">0.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_force</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">tensor([[0.,</span> <span class="pre">0.,</span> <span class="pre">0.]])</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.spatial_vector_algebra.SpatialForceVec" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">differentiable_robot_model.spatial_vector_algebra.</span></code><code class="sig-name descname"><span class="pre">SpatialForceVec</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lin_force</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">tensor([[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_force</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">tensor([[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0]])</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.spatial_vector_algebra.SpatialForceVec" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
 <dt id="differentiable_robot_model.spatial_vector_algebra.SpatialForceVec.add_force_vec">
@@ -881,7 +992,7 @@ registered hooks while the latter silently ignores them.</p>
 
 <dl class="py class">
 <dt id="differentiable_robot_model.spatial_vector_algebra.SpatialMotionVec">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">differentiable_robot_model.spatial_vector_algebra.</span></code><code class="sig-name descname"><span class="pre">SpatialMotionVec</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lin_motion</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">tensor([[0.,</span> <span class="pre">0.,</span> <span class="pre">0.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_motion</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">tensor([[0.,</span> <span class="pre">0.,</span> <span class="pre">0.]])</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.spatial_vector_algebra.SpatialMotionVec" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">differentiable_robot_model.spatial_vector_algebra.</span></code><code class="sig-name descname"><span class="pre">SpatialMotionVec</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lin_motion</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">tensor([[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ang_motion</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">tensor([[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0]])</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#differentiable_robot_model.spatial_vector_algebra.SpatialMotionVec" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
 <dt id="differentiable_robot_model.spatial_vector_algebra.SpatialMotionVec.add_motion_vec">
@@ -1062,66 +1173,47 @@ registered hooks while the latter silently ignores them.</p>
 </div>
 
 
+           </div>
+           
           </div>
-          
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Facebook AI Research.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="#">differentiable-robot-model</a></h1>
 
+    </section>
 
+  </div>
+  
 
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
 
-
-
-
-
-<h3>Navigation</h3>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="#">Documentation overview</a><ul>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>$('#searchbox').show(0);</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2021, Sutanto et al..
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
-      
-      |
-      <a href="_sources/index.rst.txt"
-          rel="nofollow">Page source</a>
-    </div>
-
+  
+  
     
+   
 
-    
-  </body>
+</body>
 </html>
