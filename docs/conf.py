@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'differentiable-robot-model'
-copyright = '2021, Sutanto et al.'
-author = 'Sutanto et al.'
+copyright = '2021, Facebook AI Research'
+author = 'Facebook AI Research'
 
 
 # -- General configuration ---------------------------------------------------
