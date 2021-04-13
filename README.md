@@ -13,8 +13,9 @@ Currently, our code should work with any kinematic trees. This package comes wit
 * Allegro Hand
 * a 2-link toy robot
 
+You can find the documentation here:  [Differentiable-Robot-Model Documentation](https://fmeier.github.io/differentiable-robot-model/)  
 
-## Setup
+## Installation
 Requirements: python>= 3.7  
 you can either pip install:
 ```
@@ -63,7 +64,6 @@ running `pytest` in the top-level folder will run our differentiable robot model
 which compare computations against pybullet.
 
 ## Documentation
-You can find the documentation here:  [docs](https://fmeier.github.io/differentiable-robot-model/)
 It was created using Sphinx to automatically generate readable documentation from docstrings. Simply call `make html` inside `./docs` to regenerate docs.
 
 
