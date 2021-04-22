@@ -40,8 +40,12 @@ class URDFRobotModel(object):
             joint_name = joint.name
             # find joint that is the "child" of this body according to urdf
 
-            rot_angles = torch.tensor(joint.origin.rotation, dtype=torch.float32, device=self._device)
-            trans = torch.tensor(joint.origin.position, dtype=torch.float32, device=self._device)
+            rot_angles = torch.tensor(
+                joint.origin.rotation, dtype=torch.float32, device=self._device
+            )
+            trans = torch.tensor(
+                joint.origin.position, dtype=torch.float32, device=self._device
+            )
             joint_type = joint.type
             joint_limits = None
             joint_damping = torch.zeros(1, device=self._device)
@@ -55,11 +59,15 @@ class URDFRobotModel(object):
                 }
                 try:
                     joint_damping = torch.tensor(
-                        [joint.dynamics.damping], dtype=torch.float32, device=self._device
+                        [joint.dynamics.damping],
+                        dtype=torch.float32,
+                        device=self._device,
                     )
                 except AttributeError:
                     joint_damping = torch.zeros(1, device=self._device)
-                joint_axis = torch.tensor(joint.axis, dtype=torch.float32, device=self._device).reshape(1, 3)
+                joint_axis = torch.tensor(
+                    joint.axis, dtype=torch.float32, device=self._device
+                ).reshape(1, 3)
 
         body_params["rot_angles"] = rot_angles
         body_params["trans"] = trans
@@ -70,9 +78,15 @@ class URDFRobotModel(object):
         body_params["joint_axis"] = joint_axis
 
         if link.inertial is not None:
-            mass = torch.tensor([link.inertial.mass], dtype=torch.float32, device=self._device)
+            mass = torch.tensor(
+                [link.inertial.mass], dtype=torch.float32, device=self._device
+            )
             com = (
-                torch.tensor(link.inertial.origin.position, dtype=torch.float32, device=self._device)
+                torch.tensor(
+                    link.inertial.origin.position,
+                    dtype=torch.float32,
+                    device=self._device,
+                )
                 .reshape((1, 3))
                 .to(self._device)
             )

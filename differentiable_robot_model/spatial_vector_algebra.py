@@ -169,13 +169,19 @@ class SpatialMotionVec(object):
         self,
         lin_motion: Optional[torch.Tensor] = None,
         ang_motion: Optional[torch.Tensor] = None,
-        device=None
+        device=None,
     ):
         if lin_motion is None or ang_motion is None:
-            assert device is not None, "Cannot initialize with default values without specifying device."
+            assert (
+                device is not None
+            ), "Cannot initialize with default values without specifying device."
             device = torch.device(device)
-        self.lin = lin_motion if lin_motion is not None else torch.zeros((1, 3), device=device)
-        self.ang = ang_motion if ang_motion is not None else torch.zeros((1, 3), device=device)
+        self.lin = (
+            lin_motion if lin_motion is not None else torch.zeros((1, 3), device=device)
+        )
+        self.ang = (
+            ang_motion if ang_motion is not None else torch.zeros((1, 3), device=device)
+        )
 
     def add_motion_vec(self, smv: SpatialMotionVec) -> SpatialMotionVec:
         r"""
@@ -247,13 +253,19 @@ class SpatialForceVec(object):
         self,
         lin_force: Optional[torch.Tensor] = None,
         ang_force: Optional[torch.Tensor] = None,
-        device=None
+        device=None,
     ):
         if lin_force is None or ang_force is None:
-            assert device is not None, "Cannot initialize with default values without specifying device."
+            assert (
+                device is not None
+            ), "Cannot initialize with default values without specifying device."
             device = torch.device(device)
-        self.lin = lin_force if lin_force is not None else torch.zeros((1, 3), device=device)
-        self.ang = ang_force if ang_force is not None else torch.zeros((1, 3), device=device)
+        self.lin = (
+            lin_force if lin_force is not None else torch.zeros((1, 3), device=device)
+        )
+        self.ang = (
+            ang_force if ang_force is not None else torch.zeros((1, 3), device=device)
+        )
 
     def add_force_vec(self, sfv: SpatialForceVec) -> SpatialForceVec:
         r"""

@@ -32,7 +32,9 @@ class DifferentiableRigidBody(torch.nn.Module):
 
         # dynamics parameters
         self.joint_damping = rigid_body_params["joint_damping"]
-        self.inertia = DifferentiableSpatialRigidBodyInertia(rigid_body_params, device=self._device)
+        self.inertia = DifferentiableSpatialRigidBodyInertia(
+            rigid_body_params, device=self._device
+        )
 
         # kinematics parameters
         self.trans = rigid_body_params["trans"]
