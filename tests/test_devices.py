@@ -16,14 +16,14 @@ robot_description_folder = diff_robot_data.__path__[0]
 urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 
-@pytest.fixture(params=["cpu", "cuda"])
+@pytest.fixture(params=["cuda", "cpu"])
 def default_tensor_type(request):
     if request.param == "cuda":
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
     return request.param
 
 
-@pytest.fixture(params=["cpu", "cuda"])
+@pytest.fixture(params=["cuda", "cpu"])
 def robot_model(request):
     return DifferentiableRobotModel(
         urdf_path,
