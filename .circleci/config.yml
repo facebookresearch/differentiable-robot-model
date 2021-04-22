@@ -11,15 +11,12 @@ jobs:
       - restore_cache:
           key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
-          name: Create conda environment
-          command: |
-            . /opt/conda/etc/profile.d/conda.sh
-            [ -d ~/testenv ] || conda create -p ~/testenv
-      - run:
           name: Setup env
           command: |
             . /opt/conda/etc/profile.d/conda.sh
+            [ -d ~/testenv ] || conda create -p ~/testenv
             conda activate ~/testenv
+            conda install pip
             pip install -r requirements.txt
             pip install -r tests/requirements.txt
       - save_cache:
