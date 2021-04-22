@@ -11,12 +11,13 @@ jobs:
       - restore_cache:
           key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
-          name: Setup env
+          name: Create conda environment
           command: |
             . /opt/conda/etc/profile.d/conda.sh
             [ -d ~/testenv ] || conda create -p ~/testenv
-            conda init bash
-            source ~/.bashrc
+      - run:
+          name: Setup env
+          command: |
             conda activate ~/testenv
             pip install -r requirements.txt
             pip install -r tests/requirements.txt
@@ -28,8 +29,6 @@ jobs:
           name: Run tests
           command: |
             . /opt/conda/etc/profile.d/conda.sh
-            conda init bash
-            source ~/.bashrc
             conda activate ~/testenv
             cd ~/differentiable-robot-model
             pip install -e .
