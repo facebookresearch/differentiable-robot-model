@@ -24,7 +24,7 @@ def tensor_check(function):
     def check(arg, obj):
         if type(arg) is torch.Tensor:
             assert (
-                arg.device == obj._device
+                arg.device.type == obj._device.type
             ), f"Input argument of different device as module: {arg}"
 
     def wrapper(self, *args, **kwargs):
@@ -207,7 +207,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         # reset all forces for backward pass
         for i in range(0, len(self._bodies)):
-            self._bodies[i].force = SpatialForceVec()
+            self._bodies[i].force = SpatialForceVec(device=self._device)
 
         # backward pass to propagate forces up (from endeffector to root body)
         for i in range(len(self._bodies) - 1, 0, -1):

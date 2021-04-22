@@ -11,7 +11,6 @@ from functools import reduce
 
 
 prod = lambda l: reduce(operator.mul, l, 1)
-torch.set_default_tensor_type(torch.DoubleTensor)
 
 
 def cross_product(vec3a, vec3b):

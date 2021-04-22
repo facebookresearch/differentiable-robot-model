@@ -5,8 +5,6 @@ import math
 
 from . import se3_so3_util, utils
 
-torch.set_default_tensor_type(torch.DoubleTensor)
-
 
 class NonNegativeScalarNet(torch.nn.Module):
     def __init__(
