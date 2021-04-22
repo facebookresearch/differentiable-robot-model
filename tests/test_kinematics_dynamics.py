@@ -14,6 +14,8 @@ from differentiable_robot_model.differentiable_robot_model import (
     LearnableRigidBodyConfig,
 )
 
+torch.set_default_tensor_type(torch.FloatTensor)
+
 # (rel_urdf_path, test_link_list)
 test_data = [
     # Toy
