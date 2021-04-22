@@ -57,7 +57,9 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         self.name = name
 
-        self._device = device if device is not None else torch.device("cpu")
+        self._device = (
+            torch.device(device) if device is not None else torch.device("cpu")
+        )
 
         self._urdf_model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
         self._bodies = torch.nn.ModuleList()
