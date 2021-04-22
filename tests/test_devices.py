@@ -17,16 +17,6 @@ urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 
 @pytest.fixture(params=["cuda", "cpu"])
-def default_tensor_type(request):
-    if request.param == "cuda":
-        torch.set_default_tensor_type(torch.cuda.FloatTensor)
-    else:
-        torch.set_default_tensor_type(torch.FloatTensor)
-
-    return request.param
-
-
-@pytest.fixture(params=["cuda", "cpu"])
 def robot_model(request):
     return DifferentiableRobotModel(
         urdf_path,
@@ -35,7 +25,13 @@ def robot_model(request):
     )
 
 
+@pytest.mark.parametrize(
+    "default_tensor_type", [torch.cuda.FloatTensor, torch.FloatTensor]
+)
 def test_robot_model(robot_model, default_tensor_type):
+    # Set default tensor type
+    torch.set_default_tensor_type(default_tensor_type)
+
     # Method arguments
     n_dofs = robot_model._n_dofs
     rand_n_dofs = torch.rand(1, n_dofs)
