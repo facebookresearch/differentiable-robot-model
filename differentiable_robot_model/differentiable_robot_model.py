@@ -18,14 +18,11 @@ robot_description_folder = diff_robot_data.__path__[0]
 
 def tensor_check(function):
     """
-    A decorator for checking the device and dtype of input tensors
+    A decorator for checking the device of input tensors
     """
 
     def check(arg, obj):
         if type(arg) is torch.Tensor:
-            assert (
-                arg.dtype is obj._dtype
-            ), f"Input argument of different dtype as module: {arg}"
             assert (
                 arg.device == obj._device
             ), f"Input argument of different device as module: {arg}"
@@ -53,7 +50,6 @@ class DifferentiableRobotModel(torch.nn.Module):
         urdf_path: str,
         learnable_rigid_body_config=None,
         name="",
-        dtype=None,
         device=None,
     ):
 
@@ -61,7 +57,6 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         self.name = name
 
-        self._dtype = dtype if dtype is not None else torch.get_default_dtype()
         self._device = device if device is not None else torch.device("cpu")
 
         self._urdf_model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
