@@ -20,6 +20,9 @@ urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 def default_tensor_type(request):
     if request.param == "cuda":
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
+    else:
+        torch.set_default_tensor_type(torch.FloatTensor)
+
     return request.param
 
 
@@ -33,6 +36,7 @@ def robot_model(request):
 
 
 def test_robot_model(robot_model, default_tensor_type):
+    # Method arguments
     n_dofs = robot_model._n_dofs
     rand_n_dofs = torch.rand(1, n_dofs)
     ee_name = "endEffector"
