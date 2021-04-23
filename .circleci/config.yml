@@ -8,8 +8,6 @@ jobs:
       image: ubuntu-1604-cuda-10.2:202012-01
     steps:
       - checkout
-      - restore_cache:
-          key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           name: Install conda
           command: |
