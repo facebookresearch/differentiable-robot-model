@@ -412,14 +412,10 @@ class TestRobotModel:
 
         # Compare (Dynamics scales differ a lot between different robots so rtol is used)
         model_qdd = np.asarray(model_qdd.detach().squeeze())
-        print("QDD", qdd)
-        print("SUB", model_qdd - qdd)
         assert np.allclose(model_qdd, qdd, rtol=5e-3)
 
         if not use_damping:
             # we can only test this if joint damping is zero,
             # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
             # "inverse" of each other
-            print("joint_acc", test_case.joint_acc)
-            print("SUB", model_qdd - np.asarray(test_case.joint_acc))
             assert np.allclose(model_qdd, np.asarray(test_case.joint_acc), rtol=5e-3)
