@@ -20,7 +20,7 @@ jobs:
           name: Setup env
           command: |
             source ~/.bashrc
-            [ -d ~/testenv ] || conda create -p ~/testenv python=3.8
+            [ -d ~/testenv ] || conda create -p ~/testenv python=3.8 -y
             conda activate ~/testenv
             pip install -r requirements.txt
             pip install -r tests/requirements.txt
