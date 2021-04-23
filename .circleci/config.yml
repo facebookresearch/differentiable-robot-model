@@ -34,7 +34,6 @@ jobs:
           command: |
             source ~/.bashrc
             conda activate ~/testenv
-            cd ~/differentiable-robot-model
             pip install -e .
             pytest
 
