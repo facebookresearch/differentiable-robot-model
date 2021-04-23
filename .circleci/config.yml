@@ -8,11 +8,14 @@ jobs:
       image: ubuntu-1604-cuda-10.2:202012-01
     steps:
       - checkout
+      - restore_cache:
+          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           name: Install conda
           command: |
-            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh --output miniconda.sh
-            bash miniconda.sh -b -p $HOME/miniconda
+            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --output miniconda.sh
+            bash miniconda.sh -b -u -p $HOME/miniconda3
+            ~/miniconda3/bin/conda init bash
       - run:
           name: Setup env
           command: |
@@ -20,6 +23,11 @@ jobs:
             conda activate ~/testenv
             pip install -r requirements.txt
             pip install -r tests/requirements.txt
+      - save_cache:
+          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          paths:
+            - "~/testenv"
+            - "~/miniconda3"
       - run:
           name: Run tests
           command: |
