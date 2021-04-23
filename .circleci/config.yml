@@ -4,8 +4,8 @@ jobs:
   install-and-test:
     working_directory: ~/differentiable-robot-model
     resource_class: gpu.nvidia.medium
-    docker:
-      - image: ubuntu-1604-cuda-10.1:201909-23
+    machine:
+      - image: ubuntu-1604-cuda-10.2:202012-01
     steps:
       - checkout
       - restore_cache:
