@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   install-and-test:
     working_directory: ~/differentiable-robot-model
-    resource_class: large
+    resource_class: gpu.nvidia.medium
     docker:
       - image: fairrobotics/kuka-workspace:ubuntu-18
     steps:
