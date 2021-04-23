@@ -5,24 +5,28 @@ jobs:
     working_directory: ~/differentiable-robot-model
     resource_class: gpu.nvidia.medium
     docker:
-      - image: fairrobotics/kuka-workspace:ubuntu-18
+      - image: ubuntu-1604-cuda-10.2:202012-01
     steps:
       - checkout
       - restore_cache:
           key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
+          name: Install conda
+          command: |
+            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh --output miniconda.sh
+            bash miniconda.sh -b -p $HOME/miniconda
+      - run:
           name: Setup env
           command: |
-            . /opt/conda/etc/profile.d/conda.sh
             [ -d ~/testenv ] || conda create -p ~/testenv
             conda activate ~/testenv
-            conda install pip
             pip install -r requirements.txt
             pip install -r tests/requirements.txt
       - save_cache:
           key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
             - "~/testenv"
+            - "~/miniconda3"
       - run:
           name: Run tests
           command: |
