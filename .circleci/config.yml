@@ -5,7 +5,7 @@ jobs:
     working_directory: ~/differentiable-robot-model
     resource_class: gpu.nvidia.medium
     machine:
-      - image: ubuntu-1604-cuda-10.2:202012-01
+      image: ubuntu-1604-cuda-10.2:202012-01
     steps:
       - checkout
       - restore_cache:
