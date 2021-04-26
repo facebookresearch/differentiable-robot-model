@@ -14,6 +14,8 @@ from differentiable_robot_model.differentiable_robot_model import (
     LearnableRigidBodyConfig,
 )
 
+torch.set_default_tensor_type(torch.FloatTensor)
+
 # (rel_urdf_path, test_link_list)
 test_data = [
     # Toy
@@ -335,7 +337,7 @@ class TestRobotModel:
 
         # Compare
         assert np.allclose(
-            inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-7
+            inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-5
         )
 
     @pytest.mark.parametrize("use_damping", [True, False])
@@ -408,12 +410,12 @@ class TestRobotModel:
             use_damping=use_damping,
         )
 
-        # Compare
+        # Compare (Dynamics scales differ a lot between different robots so rtol is used)
         model_qdd = np.asarray(model_qdd.detach().squeeze())
-        assert np.allclose(model_qdd, qdd, atol=1e-7)
+        assert np.allclose(model_qdd, qdd, rtol=5e-3)
 
         if not use_damping:
             # we can only test this if joint damping is zero,
             # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
             # "inverse" of each other
-            assert np.allclose(model_qdd, np.asarray(test_case.joint_acc), atol=1e-7)
+            assert np.allclose(model_qdd, np.asarray(test_case.joint_acc), rtol=5e-3)

@@ -22,6 +22,30 @@ import diff_robot_data
 robot_description_folder = diff_robot_data.__path__[0]
 
 
+def tensor_check(function):
+    """
+    A decorator for checking the device of input tensors
+    """
+
+    def check(arg, obj):
+        if type(arg) is torch.Tensor:
+            assert (
+                arg.device.type == obj._device.type
+            ), f"Input argument of different device as module: {arg}"
+
+    def wrapper(self, *args, **kwargs):
+        for arg in args:
+            check(arg, self)
+
+        for key in kwargs.keys():
+            arg = kwargs[key]
+            check(arg, self)
+
+        return function(self, *args, **kwargs)
+
+    return wrapper
+
+
 class DifferentiableRobotModel(torch.nn.Module):
     """
     Differentiable Robot Model
@@ -29,13 +53,21 @@ class DifferentiableRobotModel(torch.nn.Module):
     TODO
     """
 
-    def __init__(self, urdf_path: str, learnable_rigid_body_config=None, name=""):
+    def __init__(
+        self,
+        urdf_path: str,
+        learnable_rigid_body_config=None,
+        name="",
+        device=None,
+    ):
 
         super().__init__()
 
         self.name = name
 
-        self._device = "cpu"
+        self._device = (
+            torch.device(device) if device is not None else torch.device("cpu")
+        )
 
         self._urdf_model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
         self._bodies = torch.nn.ModuleList()
@@ -73,6 +105,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             self._bodies.append(body)
             self._name_to_idx_map[body.name] = i
 
+    @tensor_check
     def update_kinematic_state(self, q: torch.Tensor, qd: torch.Tensor) -> None:
         r"""
 
@@ -101,7 +134,8 @@ class DifferentiableRobotModel(torch.nn.Module):
         # we assume a non-moving base
         parent_body = self._bodies[0]
         parent_body.vel = SpatialMotionVec(
-            torch.zeros((batch_size, 3)), torch.zeros((batch_size, 3))
+            torch.zeros((batch_size, 3), device=self._device),
+            torch.zeros((batch_size, 3), device=self._device),
         )
 
         # propagate the new joint state through the kinematic chain to update bodies position/velocities
@@ -128,6 +162,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             body.vel = body.joint_vel.add_motion_vec(new_vel)
         return
 
+    @tensor_check
     def compute_forward_kinematics(
         self, q: torch.Tensor, link_name: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -149,6 +184,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         rot = pose.get_quaternion()
         return pos, rot
 
+    @tensor_check
     def iterative_newton_euler(self, base_acc: SpatialMotionVec) -> None:
         r"""
 
@@ -179,7 +215,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         # reset all forces for backward pass
         for i in range(0, len(self._bodies)):
-            self._bodies[i].force = SpatialForceVec()
+            self._bodies[i].force = SpatialForceVec(device=self._device)
 
         # backward pass to propagate forces up (from endeffector to root body)
         for i in range(len(self._bodies) - 1, 0, -1):
@@ -203,6 +239,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return
 
+    @tensor_check
     def compute_inverse_dynamics(
         self,
         q: torch.Tensor,
@@ -244,7 +281,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         base_ang_acc = q.new_zeros((batch_size, 3))
         base_lin_acc = q.new_zeros((batch_size, 3))
         if include_gravity:
-            base_lin_acc[:, 2] = 9.81 * torch.ones(batch_size)
+            base_lin_acc[:, 2] = 9.81 * torch.ones(batch_size, device=self._device)
 
         # we propagate the base forces
         self.iterative_newton_euler(SpatialMotionVec(base_lin_acc, base_ang_acc))
@@ -252,19 +289,21 @@ class DifferentiableRobotModel(torch.nn.Module):
         # we extract the relevant forces for all controlled joints
         for i in range(qdd_des.shape[1]):
             idx = self._controlled_joints[i]
-            rot_axis = torch.zeros((batch_size, 3)).to(self._device)
+            rot_axis = torch.zeros((batch_size, 3), device=self._device)
             axis = self._bodies[idx].joint_axis[0]
             axis_idx = int(torch.where(axis)[0])
             rot_sign = torch.sign(axis[axis_idx])
 
-            rot_axis[:, axis_idx] = rot_sign * torch.ones(batch_size).to(self._device)
+            rot_axis[:, axis_idx] = rot_sign * torch.ones(
+                batch_size, device=self._device
+            )
             force[:, i] += (
                 self._bodies[idx].force.ang.unsqueeze(1) @ rot_axis.unsqueeze(2)
             ).squeeze()
 
         # we add forces to counteract damping
         if use_damping:
-            damping_const = torch.zeros(1, self._n_dofs)
+            damping_const = torch.zeros((1, self._n_dofs), device=self._device)
             for i in range(self._n_dofs):
                 idx = self._controlled_joints[i]
                 damping_const[:, i] = self._bodies[idx].get_joint_damping_const()
@@ -272,6 +311,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return force
 
+    @tensor_check
     def compute_non_linear_effects(
         self,
         q: torch.Tensor,
@@ -296,6 +336,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             q, qd, zero_qdd, include_gravity, use_damping
         )
 
+    @tensor_check
     def compute_lagrangian_inertia_matrix(
         self,
         q: torch.Tensor,
@@ -313,7 +354,11 @@ class DifferentiableRobotModel(torch.nn.Module):
         """
         assert q.shape[1] == self._n_dofs
         batch_size = q.shape[0]
-        identity_tensor = torch.eye(q.shape[1]).unsqueeze(0).repeat(batch_size, 1, 1)
+        identity_tensor = (
+            torch.eye(q.shape[1], device=self._device)
+            .unsqueeze(0)
+            .repeat(batch_size, 1, 1)
+        )
         zero_qd = q.new_zeros(q.shape)
         zero_qdd = q.new_zeros(q.shape)
         if include_gravity:
@@ -341,6 +386,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         )
         return H
 
+    @tensor_check
     def compute_forward_dynamics_old(
         self,
         q: torch.Tensor,
@@ -375,6 +421,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return qdd
 
+    @tensor_check
     def compute_forward_dynamics(
         self,
         q: torch.Tensor,
@@ -399,7 +446,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         batch_size = q.shape[0]
 
         if use_damping:
-            damping_const = torch.zeros(1, self._n_dofs)
+            damping_const = torch.zeros((1, self._n_dofs), device=self._device)
             for i in range(self._n_dofs):
                 idx = self._controlled_joints[i]
                 damping_const[:, i] = self._bodies[idx].get_joint_damping_const()
@@ -412,7 +459,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         base_ang_acc = q.new_zeros((batch_size, 3))
         base_lin_acc = q.new_zeros((batch_size, 3))
         if include_gravity:
-            base_lin_acc[:, 2] = 9.81 * torch.ones(batch_size)
+            base_lin_acc[:, 2] = 9.81 * torch.ones(batch_size, device=self._device)
 
         base_acc = SpatialMotionVec(base_lin_acc, base_ang_acc)
 
@@ -433,7 +480,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             body = self._bodies[i]
 
             S = SpatialMotionVec(
-                lin_motion=torch.zeros((batch_size, 3)),
+                lin_motion=torch.zeros((batch_size, 3), device=self._device),
                 ang_motion=body.joint_axis.repeat((batch_size, 1)),
             )
             body.S = S
@@ -507,6 +554,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return qdd
 
+    @tensor_check
     def compute_endeffector_jacobian(
         self, q: torch.Tensor, link_name: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -524,8 +572,9 @@ class DifferentiableRobotModel(torch.nn.Module):
         e_pose = self._bodies[self._name_to_idx_map[link_name]].pose
         p_e = e_pose.translation()[0]
 
-        lin_jac, ang_jac = torch.zeros([3, self._n_dofs]), torch.zeros(
-            [3, self._n_dofs]
+        lin_jac, ang_jac = (
+            torch.zeros([3, self._n_dofs], device=self._device),
+            torch.zeros([3, self._n_dofs], device=self._device),
         )
 
         joint_id = (

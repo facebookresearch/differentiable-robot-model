@@ -31,13 +31,15 @@ class DifferentiableRigidBody(torch.nn.Module):
 
         super().__init__()
 
-        self._device = device
+        self._device = torch.device(device)
         self.joint_id = rigid_body_params["joint_id"]
         self.name = rigid_body_params["link_name"]
 
         # dynamics parameters
         self.joint_damping = rigid_body_params["joint_damping"]
-        self.inertia = DifferentiableSpatialRigidBodyInertia(rigid_body_params)
+        self.inertia = DifferentiableSpatialRigidBodyInertia(
+            rigid_body_params, device=self._device
+        )
 
         # kinematics parameters
         self.trans = rigid_body_params["trans"]
@@ -47,22 +49,25 @@ class DifferentiableRigidBody(torch.nn.Module):
         # local joint axis (w.r.t. joint coordinate frame):
         self.joint_axis = rigid_body_params["joint_axis"]
 
-        self.joint_pose = CoordinateTransform()
+        self.joint_pose = CoordinateTransform(device=self._device)
         self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
 
         # local velocities and accelerations (w.r.t. joint coordinate frame):
-        self.joint_vel = SpatialMotionVec()
-        self.joint_acc = SpatialMotionVec()
+        self.joint_vel = SpatialMotionVec(device=self._device)
+        self.joint_acc = SpatialMotionVec(device=self._device)
 
-        self.update_joint_state(torch.zeros(1, 1), torch.zeros(1, 1))
-        self.update_joint_acc(torch.zeros(1, 1))
+        self.update_joint_state(
+            torch.zeros([1, 1], device=self._device),
+            torch.zeros([1, 1], device=self._device),
+        )
+        self.update_joint_acc(torch.zeros([1, 1], device=self._device))
 
-        self.pose = CoordinateTransform()
+        self.pose = CoordinateTransform(device=self._device)
 
-        self.vel = SpatialMotionVec()
-        self.acc = SpatialMotionVec()
+        self.vel = SpatialMotionVec(device=self._device)
+        self.acc = SpatialMotionVec(device=self._device)
 
-        self.force = SpatialForceVec()
+        self.force = SpatialForceVec(device=self._device)
 
         return
 
@@ -119,7 +124,7 @@ class LearnableRigidBody(DifferentiableRigidBody):
         super().__init__(rigid_body_params=gt_rigid_body_params, device=device)
 
         self.inertia = LearnableSpatialRigidBodyInertia(
-            learnable_rigid_body_config, gt_rigid_body_params
+            learnable_rigid_body_config, gt_rigid_body_params, device=self._device
         )
         self.joint_damping = gt_rigid_body_params["joint_damping"]
 
