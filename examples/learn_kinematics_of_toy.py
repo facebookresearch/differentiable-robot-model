@@ -7,11 +7,11 @@ import os
 from hydra.experimental import compose as hydra_compose
 from hydra.experimental import initialize_config_dir
 
-from differentiable_robot_model.differentiable_robot_model import (
+from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
     DifferentiableTwoLinkRobot,
 )
-from differentiable_robot_model.data_generation_utils import (
+from differentiable_robot_model.data_utils import (
     generate_random_forward_kinematics_data,
 )
 import differentiable_robot_model

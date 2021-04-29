@@ -9,7 +9,7 @@ import pytest
 
 import pybullet as p
 import diff_robot_data
-from differentiable_robot_model.differentiable_robot_model import (
+from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
     LearnableRigidBodyConfig,
 )

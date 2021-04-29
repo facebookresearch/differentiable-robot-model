@@ -10,7 +10,7 @@ import os
 
 import torch
 
-from .differentiable_rigid_body import (
+from .rigid_body import (
     DifferentiableRigidBody,
     LearnableRigidBody,
 )
