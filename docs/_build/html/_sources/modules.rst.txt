@@ -1,7 +1,0 @@
-differentiable_robot_model
-==========================
-
-.. toctree::
-   :maxdepth: 4
-
-   differentiable_robot_model
