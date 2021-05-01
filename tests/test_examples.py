@@ -9,8 +9,6 @@ import pytest
     "relpath",
     [
         "../examples/learn_dynamics_iiwa.py",
-        "../examples/learn_forward_dynamics_iiwa.py",
-        "../examples/learn_kinematics_of_iiwa.py",
         "../examples/learn_kinematics_of_toy.py",
     ],
 )
