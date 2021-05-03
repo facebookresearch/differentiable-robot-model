@@ -63,11 +63,15 @@ def run(n_epochs=100, n_data=10000, device="cpu"):
     )
 
     tau = torch.zeros((1, 7), device=device)  # .repeat((10, 1))
-    q = torch.Tensor(
-        [[-0.492, -0.828, -1.862, 0.163, -1.754, 0.714, -2.197]], device=device
+    q = torch.tensor(
+        [[-0.492, -0.828, -1.862, 0.163, -1.754, 0.714, -2.197]],
+        dtype=torch.float32,
+        device=device,
     )  # .repeat((10, 1))
-    qd = torch.Tensor(
-        [[4.406, -7.065, -3.089, -1.616, 7.562, -1.654, -6.038]], device=device
+    qd = torch.tensor(
+        [[4.406, -7.065, -3.089, -1.616, 7.562, -1.654, -6.038]],
+        dtype=torch.float32,
+        device=device,
     )  # .repeat((10, 1))
 
     qdd = gt_robot_model.compute_forward_dynamics(q=q, qd=qd, f=tau, use_damping=True)
