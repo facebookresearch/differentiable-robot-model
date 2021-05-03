@@ -308,7 +308,7 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
                 np.linalg.cholesky(
                     init_spd_3d_cov_inertia_matrix.numpy()
                     - (self.spd_3d_cov_inertia_mat_diag_bias * np.eye(3))
-                )
+                ), dtype=torch.float32
             )
             diag_indices = np.diag_indices(
                 min(
@@ -370,7 +370,7 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
                 np.linalg.cholesky(
                     init_param.squeeze().numpy()
                     - (self.spd_3d_inertia_mat_diag_bias * np.eye(3))
-                )
+                ), dtype=torch.float32
             )
             diag_indices = np.diag_indices(
                 min(init_param.size(-2), init_param.size(-1))
@@ -442,7 +442,7 @@ class UnconstrainedMassValue(torch.nn.Module):
 class PositiveMassValue(torch.nn.Module):
     def __init__(self, init_val=None, device="cpu"):
         super(PositiveMassValue, self).__init__()
-        self.min_mass_val = torch.tensor(0.01).to(device)
+        self.min_mass_val = torch.tensor(0.01, dtype=torch.float32).to(device)
 
         if init_val is None:
             init_param_value = torch.sqrt(torch.rand(1) ** 2)
