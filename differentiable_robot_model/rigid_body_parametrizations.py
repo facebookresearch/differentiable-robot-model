@@ -247,7 +247,7 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
         J2 = self.J2net().squeeze()
         J3 = torch.sqrt((J1 * J1) + (J2 * J2) - (2.0 * J1 * J2 * torch.cos(alpha)))
 
-        self.J = torch.zeros((3, 3))
+        self.J = torch.zeros((3, 3), device=alpha.device)
         self.J[0, 0] = J1
         self.J[1, 1] = J2
         self.J[2, 2] = J3
@@ -337,7 +337,7 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
         )
         spsd_3d_cov_inertia_matrix = spsd_3d_cov_inertia_matrix.squeeze()
         spd_3d_cov_inertia_matrix = spsd_3d_cov_inertia_matrix + (
-            self.spd_3d_cov_inertia_mat_diag_bias * torch.eye(3)
+            self.spd_3d_cov_inertia_mat_diag_bias * torch.eye(3, device=self.l.device)
         )
         inertia_matrix = spd_3d_cov_inertia_matrix.new_zeros((3, 3))
         inertia_matrix[0, 0] = (
@@ -394,7 +394,7 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
             raw_l_input=raw_l_input
         )
         spd_3d_inertia_matrix = spsd_3d_inertia_matrix.squeeze() + (
-            self.spd_3d_inertia_mat_diag_bias * torch.eye(3)
+            self.spd_3d_inertia_mat_diag_bias * torch.eye(3, device=self.l.device)
         )
         return spd_3d_inertia_matrix
 

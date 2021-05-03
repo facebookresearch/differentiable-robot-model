@@ -387,21 +387,21 @@ class LearnableSpatialRigidBodyInertia(DifferentiableSpatialRigidBodyInertia):
         if "mass" in learnable_rigid_body_config.learnable_dynamics_params:
             self.mass_fn = hydra.utils.instantiate(
                 learnable_rigid_body_config.mass_parametrization
-            )
+            ).to(device)
         else:
             self.mass_fn = lambda: self.mass
 
         if "com" in learnable_rigid_body_config.learnable_dynamics_params:
             self.com_fn = hydra.utils.instantiate(
                 learnable_rigid_body_config.com_parametrization
-            )
+            ).to(device)
         else:
             self.com_fn = lambda: self.com
 
         if "inertia_mat" in learnable_rigid_body_config.learnable_dynamics_params:
             self.inertia_mat_fn = hydra.utils.instantiate(
                 learnable_rigid_body_config.inertia_parametrization
-            )
+            ).to(device)
         else:
             self.inertia_mat_fn = lambda: self.inertia_mat
 

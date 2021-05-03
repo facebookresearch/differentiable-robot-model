@@ -1,19 +1,23 @@
-import os
-import sys
-import subprocess
+import random
 
 import pytest
+import numpy as np
+import torch
+
+from examples import learn_dynamics_iiwa, learn_kinematics_of_toy
+
+
+@pytest.fixture(autouse=True)
+def set_seed():
+    random.seed(0)
+    np.random.seed(1)
+    torch.manual_seed(0)
 
 
 @pytest.mark.parametrize(
-    "relpath",
-    [
-        "../examples/learn_dynamics_iiwa.py",
-        "../examples/learn_kinematics_of_toy.py",
-    ],
+    "experiment",
+    [learn_dynamics_iiwa, learn_kinematics_of_toy],
 )
-def test_examples(relpath):
-    curr_dir = os.path.dirname(os.path.abspath(__file__))
-    py_file = os.path.abspath(os.path.join(curr_dir, relpath))
-    cmd = [sys.executable, py_file]
-    subprocess.check_call(cmd)
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_examples(experiment, device):
+    experiment.run(device=device)
