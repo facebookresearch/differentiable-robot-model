@@ -54,7 +54,8 @@ def generate_random_forward_kinematics_data(robot_model, n_data, ee_name):
     q = torch.tensor(
         np.random.uniform(
             low=joint_lower_bounds, high=joint_upper_bounds, size=(n_data, ndof)
-        ), dtype=torch.float32
+        ),
+        dtype=torch.float32,
     )
     ee_pos, _ = robot_model.compute_forward_kinematics(q=q, link_name=ee_name)
 
@@ -71,19 +72,22 @@ def generate_random_inverse_dynamics_data(robot_model, n_data):
     q = torch.tensor(
         np.random.uniform(
             low=joint_lower_bounds, high=joint_upper_bounds, size=(n_data, 7)
-        ), dtype=torch.float32
+        ),
+        dtype=torch.float32,
     )
     qd = torch.tensor(
         np.random.uniform(
             low=-joint_velocity_limits, high=joint_velocity_limits, size=(n_data, 7)
-        ), dtype=torch.float32
+        ),
+        dtype=torch.float32,
     )
     qdd_des = torch.tensor(
         np.random.uniform(
             low=-joint_velocity_limits * 2.0,
             high=joint_velocity_limits * 2.0,
             size=(n_data, 7),
-        ), dtype=torch.float32
+        ),
+        dtype=torch.float32,
     )
 
     torques = robot_model.compute_inverse_dynamics(

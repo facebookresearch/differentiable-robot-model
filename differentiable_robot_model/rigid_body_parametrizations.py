@@ -308,7 +308,8 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
                 np.linalg.cholesky(
                     init_spd_3d_cov_inertia_matrix.numpy()
                     - (self.spd_3d_cov_inertia_mat_diag_bias * np.eye(3))
-                ), dtype=torch.float32
+                ),
+                dtype=torch.float32,
             )
             diag_indices = np.diag_indices(
                 min(
@@ -370,7 +371,8 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
                 np.linalg.cholesky(
                     init_param.squeeze().numpy()
                     - (self.spd_3d_inertia_mat_diag_bias * np.eye(3))
-                ), dtype=torch.float32
+                ),
+                dtype=torch.float32,
             )
             diag_indices = np.diag_indices(
                 min(init_param.size(-2), init_param.size(-1))
