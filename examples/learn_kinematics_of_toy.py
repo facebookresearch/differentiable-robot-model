@@ -24,7 +24,7 @@ np.random.seed(1)
 torch.manual_seed(0)
 
 
-def run(device="cpu"):
+def run(n_epochs=3000, n_data=100, device="cpu"):
     abs_config_dir = os.path.abspath(
         os.path.join(differentiable_robot_model.__path__[0], "../conf")
     )
@@ -48,14 +48,14 @@ def run(device="cpu"):
     )
 
     train_data = generate_random_forward_kinematics_data(
-        gt_robot_model, n_data=100, ee_name="endEffector"
+        gt_robot_model, n_data=n_data, ee_name="endEffector"
     )
     q = train_data["q"]
     gt_ee_pos = train_data["ee_pos"]
 
     optimizer = torch.optim.Adam(learnable_robot_model.parameters(), lr=1e-3)
     loss_fn = torch.nn.MSELoss()
-    for i in range(3000):
+    for i in range(n_epochs):
         optimizer.zero_grad()
         ee_pos_pred, _ = learnable_robot_model.compute_forward_kinematics(
             q=q, link_name="endEffector"

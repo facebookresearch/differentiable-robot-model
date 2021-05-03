@@ -4,7 +4,12 @@ import pytest
 import numpy as np
 import torch
 
-from examples import learn_dynamics_iiwa, learn_kinematics_of_toy
+from examples import (
+    learn_dynamics_iiwa,
+    learn_forward_dynamics_iiwa,
+    learn_kinematics_of_iiwa,
+    learn_kinematics_of_toy,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -16,8 +21,13 @@ def set_seed():
 
 @pytest.mark.parametrize(
     "experiment",
-    [learn_dynamics_iiwa, learn_kinematics_of_toy],
+    [
+        learn_dynamics_iiwa,
+        learn_forward_dynamics_iiwa,
+        learn_kinematics_of_iiwa,
+        learn_kinematics_of_toy,
+    ],
 )
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
 def test_examples(experiment, device):
-    experiment.run(device=device)
+    experiment.run(n_epochs=2, n_data=250, device=device)

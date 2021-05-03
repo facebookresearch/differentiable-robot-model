@@ -36,7 +36,7 @@ class NMSELoss(torch.nn.Module):
         return werr.mean()
 
 
-def run(device="cpu"):
+def run(n_epochs=10, n_data=1000, device="cpu"):
     abs_config_dir = os.path.abspath(
         os.path.join(differentiable_robot_model.__path__[0], "../conf")
     )
@@ -66,7 +66,7 @@ def run(device="cpu"):
     )
     optimizer = torch.optim.Adam(learnable_robot_model.parameters(), lr=1e-2)
     loss_fn = NMSELoss(train_data.var())
-    for i in range(10):
+    for i in range(n_epochs):
         losses = []
         for batch_idx, batch_data in enumerate(train_loader):
             q, qd, qdd_des, gt_tau = batch_data

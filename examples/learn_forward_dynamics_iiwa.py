@@ -38,7 +38,7 @@ class NMSELoss(torch.nn.Module):
         return werr.mean()
 
 
-def run(device="cpu"):
+def run(n_epochs=100, n_data=10000, device="cpu"):
     abs_config_dir = os.path.abspath(
         os.path.join(differentiable_robot_model.__path__[0], "../conf")
     )
@@ -74,13 +74,13 @@ def run(device="cpu"):
     tau_pred = gt_robot_model.compute_inverse_dynamics(q=q, qd=qd, qdd_des=qdd)
 
     train_data = generate_sine_motion_forward_dynamics_data(
-        gt_robot_model, n_data=10000, dt=1.0 / 250.0, freq=0.1
+        gt_robot_model, n_data=n_data, dt=1.0 / 250.0, freq=0.1
     )
     train_loader = DataLoader(dataset=train_data, batch_size=100, shuffle=False)
 
     optimizer = torch.optim.Adam(learnable_robot_model.parameters(), lr=1e-2)
     loss_fn = NMSELoss(train_data.var())
-    for i in range(100):
+    for i in range(n_epochs):
         losses = []
         for batch_idx, batch_data in enumerate(train_loader):
             q, qd, qdd, tau = batch_data
