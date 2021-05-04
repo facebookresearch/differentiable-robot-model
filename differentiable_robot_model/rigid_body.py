@@ -112,6 +112,18 @@ class DifferentiableRigidBody(torch.nn.Module):
         return self.joint_damping
 
 
+class LearnableRigidBodyConfig:
+    def __init__(
+            self,
+            learnable_links=[],
+            learnable_kinematics_params=[],
+            learnable_dynamics_params=[],
+    ):
+        self.learnable_links = learnable_links
+        self.learnable_kinematics_params = learnable_kinematics_params
+        self.learnable_dynamics_params = learnable_dynamics_params
+
+
 class LearnableRigidBody(DifferentiableRigidBody):
     r"""
 
@@ -127,15 +139,18 @@ class LearnableRigidBody(DifferentiableRigidBody):
             learnable_rigid_body_config, gt_rigid_body_params, device=self._device
         )
         self.joint_damping = gt_rigid_body_params["joint_damping"]
+        learnable_params = learnable_rigid_body_config["learnable_params"]
 
         # kinematics parameters
-        if "trans" in learnable_rigid_body_config.learnable_kinematics_params:
+        if "trans" in learnable_params:
             self.trans = torch.nn.Parameter(
                 torch.rand_like(gt_rigid_body_params["trans"])
             )
             self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
 
-        if "rot_angles" in learnable_rigid_body_config.learnable_kinematics_params:
+        if "rot_angles" in learnable_params:
             self.rot_angles = torch.nn.Parameter(gt_rigid_body_params["rot_angles"])
 
         return
+
+

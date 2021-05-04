@@ -4,43 +4,39 @@ import torch
 import random
 import os
 
-from hydra.experimental import compose as hydra_compose
-from hydra.experimental import initialize_config_dir
-
 from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
     DifferentiableKUKAiiwa,
 )
+
+from differentiable_robot_model.rigid_body_params import UnconstrainedMassValue
 from differentiable_robot_model.data_utils import (
     generate_random_forward_kinematics_data,
 )
-import differentiable_robot_model
 import diff_robot_data
 
 torch.set_printoptions(precision=3, sci_mode=False)
 random.seed(0)
 np.random.seed(1)
 torch.manual_seed(0)
-
-
-abs_config_dir = os.path.abspath(
-    os.path.join(differentiable_robot_model.__path__[0], "../conf")
-)
-# we load a learnable robot model
-with initialize_config_dir(config_dir=abs_config_dir):
-    # which parameters are learnable is specified in the config file
-    learnable_robot_model_cfg = hydra_compose(
-        config_name="torch_robot_model_learnable_kinematics.yaml"
-    )
+torch.set_default_tensor_type(torch.FloatTensor)
 
 gt_robot_model = DifferentiableKUKAiiwa()
 urdf_path = os.path.join(
-    diff_robot_data.__path__[0], learnable_robot_model_cfg.model.rel_urdf_path
+    diff_robot_data.__path__[0], "kuka_iiwa/urdf/iiwa7.urdf"
 )
+
+learnable_model_cfg = {}
+# add all links that have a learnable component, use urdf link name
+learnable_model_cfg['learnable_links'] = ['iiwa_link_1', 'iiwa_link_2']
+learnable_params = {}
+learnable_params['mass'] = {'module': UnconstrainedMassValue}
+learnable_model_cfg['learnable_params'] = learnable_params
+
 learnable_robot_model = DifferentiableRobotModel(
     urdf_path,
-    learnable_robot_model_cfg.model.learnable_rigid_body_config,
-    learnable_robot_model_cfg.model.name,
+    learnable_model_cfg,
+    "kuka_iiwa",
 )
 
 train_data = generate_random_forward_kinematics_data(

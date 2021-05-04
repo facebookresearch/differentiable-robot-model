@@ -10,6 +10,9 @@ import numpy as np
 from torch.utils.data.dataset import Dataset
 
 
+torch.set_default_tensor_type(torch.FloatTensor)
+
+
 class InverseDynamicsDataset(Dataset):
     def __init__(self, data):
         self.data = data

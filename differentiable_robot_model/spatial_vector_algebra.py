@@ -383,22 +383,24 @@ class LearnableSpatialRigidBodyInertia(DifferentiableSpatialRigidBodyInertia):
     def __init__(self, learnable_rigid_body_config, rigid_body_params, device="cpu"):
         super().__init__(rigid_body_params, device=device)
 
+        learnable_params = learnable_rigid_body_config["learnable_params"]
         # we overwrite dynamics parameters
-        if "mass" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.mass_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.mass_parametrization
-            )
+        if "mass" in learnable_params:
+            self.mass_fn = learnable_params["mass"]["module"]
+            # self.mass_fn = hydra.utils.instantiate(
+            #     learnable_rigid_body_config.mass_parametrization
+            # )
         else:
             self.mass_fn = lambda: self.mass
 
-        if "com" in learnable_rigid_body_config.learnable_dynamics_params:
+        if "com" in learnable_params:
             self.com_fn = hydra.utils.instantiate(
                 learnable_rigid_body_config.com_parametrization
             )
         else:
             self.com_fn = lambda: self.com
 
-        if "inertia_mat" in learnable_rigid_body_config.learnable_dynamics_params:
+        if "inertia_mat" in learnable_params:
             self.inertia_mat_fn = hydra.utils.instantiate(
                 learnable_rigid_body_config.inertia_parametrization
             )

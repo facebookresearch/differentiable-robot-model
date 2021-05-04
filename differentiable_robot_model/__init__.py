@@ -9,5 +9,5 @@ from .robot_model import (
     DifferentiableKUKAiiwa,
     DifferentiableFrankaPanda,
     DifferentiableTwoLinkRobot,
-    LearnableRigidBodyConfig,
 )
+from .rigid_body import LearnableRigidBodyConfig

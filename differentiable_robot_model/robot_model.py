@@ -84,7 +84,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
 
             if (learnable_rigid_body_config is not None) and (
-                link.name in learnable_rigid_body_config.learnable_links
+                link.name in learnable_rigid_body_config['learnable_links']
             ):
                 body = LearnableRigidBody(
                     learnable_rigid_body_config=learnable_rigid_body_config,
@@ -639,23 +639,11 @@ class DifferentiableRobotModel(torch.nn.Module):
             print(f"{name}: {param}")
 
 
-class LearnableRigidBodyConfig:
-    def __init__(
-        self,
-        learnable_links=[],
-        learnable_kinematics_params=[],
-        learnable_dynamics_params=[],
-    ):
-        self.learnable_links = learnable_links
-        self.learnable_kinematics_params = learnable_kinematics_params
-        self.learnable_dynamics_params = learnable_dynamics_params
-
-
 class DifferentiableKUKAiiwa(DifferentiableRobotModel):
     def __init__(self):
         rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
-        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.learnable_rigid_body_config = None
         self.name = "differentiable_kuka_iiwa"
         super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)
 
@@ -664,7 +652,7 @@ class DifferentiableFrankaPanda(DifferentiableRobotModel):
     def __init__(self):
         rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
-        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.learnable_rigid_body_config = None
         self.name = "differentiable_franka_panda"
         super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)
 

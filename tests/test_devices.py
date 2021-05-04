@@ -8,8 +8,8 @@ import pytest
 import diff_robot_data
 from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
-    LearnableRigidBodyConfig,
 )
+from differentiable_robot_model import LearnableRigidBodyConfig
 
 rel_urdf_path = "2link_robot.urdf"
 robot_description_folder = diff_robot_data.__path__[0]

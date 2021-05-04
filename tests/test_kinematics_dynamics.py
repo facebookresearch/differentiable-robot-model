@@ -11,8 +11,8 @@ import pybullet as p
 import diff_robot_data
 from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
-    LearnableRigidBodyConfig,
 )
+from differentiable_robot_model import LearnableRigidBodyConfig
 
 torch.set_default_tensor_type(torch.FloatTensor)
 
