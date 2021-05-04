@@ -247,7 +247,7 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
         J2 = self.J2net().squeeze()
         J3 = torch.sqrt((J1 * J1) + (J2 * J2) - (2.0 * J1 * J2 * torch.cos(alpha)))
 
-        self.J = torch.zeros((3, 3))
+        self.J = torch.zeros((3, 3), device=alpha.device)
         self.J[0, 0] = J1
         self.J[1, 1] = J2
         self.J[2, 2] = J3
@@ -308,7 +308,8 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
                 np.linalg.cholesky(
                     init_spd_3d_cov_inertia_matrix.numpy()
                     - (self.spd_3d_cov_inertia_mat_diag_bias * np.eye(3))
-                )
+                ),
+                dtype=torch.float32,
             )
             diag_indices = np.diag_indices(
                 min(
@@ -336,7 +337,7 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
         )
         spsd_3d_cov_inertia_matrix = spsd_3d_cov_inertia_matrix.squeeze()
         spd_3d_cov_inertia_matrix = spsd_3d_cov_inertia_matrix + (
-            self.spd_3d_cov_inertia_mat_diag_bias * torch.eye(3)
+            self.spd_3d_cov_inertia_mat_diag_bias * torch.eye(3, device=self.l.device)
         )
         inertia_matrix = spd_3d_cov_inertia_matrix.new_zeros((3, 3))
         inertia_matrix[0, 0] = (
@@ -370,7 +371,8 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
                 np.linalg.cholesky(
                     init_param.squeeze().numpy()
                     - (self.spd_3d_inertia_mat_diag_bias * np.eye(3))
-                )
+                ),
+                dtype=torch.float32,
             )
             diag_indices = np.diag_indices(
                 min(init_param.size(-2), init_param.size(-1))
@@ -392,7 +394,7 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
             raw_l_input=raw_l_input
         )
         spd_3d_inertia_matrix = spsd_3d_inertia_matrix.squeeze() + (
-            self.spd_3d_inertia_mat_diag_bias * torch.eye(3)
+            self.spd_3d_inertia_mat_diag_bias * torch.eye(3, device=self.l.device)
         )
         return spd_3d_inertia_matrix
 
@@ -442,7 +444,7 @@ class UnconstrainedMassValue(torch.nn.Module):
 class PositiveMassValue(torch.nn.Module):
     def __init__(self, init_val=None, device="cpu"):
         super(PositiveMassValue, self).__init__()
-        self.min_mass_val = torch.tensor(0.01).to(device)
+        self.min_mass_val = torch.tensor(0.01, dtype=torch.float32).to(device)
 
         if init_val is None:
             init_param_value = torch.sqrt(torch.rand(1) ** 2)

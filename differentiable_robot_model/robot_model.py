@@ -640,27 +640,33 @@ class DifferentiableRobotModel(torch.nn.Module):
 
 
 class DifferentiableKUKAiiwa(DifferentiableRobotModel):
-    def __init__(self):
+    def __init__(self, device=None):
         rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = None
         self.name = "differentiable_kuka_iiwa"
-        super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)
+        super().__init__(
+            self.urdf_path, self.learnable_rigid_body_config, self.name, device=device
+        )
 
 
 class DifferentiableFrankaPanda(DifferentiableRobotModel):
-    def __init__(self):
+    def __init__(self, device=None):
         rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = None
         self.name = "differentiable_franka_panda"
-        super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)
+        super().__init__(
+            self.urdf_path, self.learnable_rigid_body_config, self.name, device=device
+        )
 
 
 class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
-    def __init__(self):
+    def __init__(self, device=None):
         rel_urdf_path = "2link_robot.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = LearnableRigidBodyConfig()
         self.name = "diff_2d_robot"
-        super().__init__(self.urdf_path, self.learnable_rigid_body_config, self.name)
+        super().__init__(
+            self.urdf_path, self.learnable_rigid_body_config, self.name, device=device
+        )
