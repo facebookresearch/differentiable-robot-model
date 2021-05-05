@@ -84,7 +84,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
 
             if (learnable_rigid_body_config is not None) and (
-                link.name in learnable_rigid_body_config['learnable_links']
+                link.name in learnable_rigid_body_config["learnable_links"]
             ):
                 body = LearnableRigidBody(
                     learnable_rigid_body_config=learnable_rigid_body_config,
@@ -665,7 +665,7 @@ class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
     def __init__(self, device=None):
         rel_urdf_path = "2link_robot.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
-        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.learnable_rigid_body_config = None
         self.name = "diff_2d_robot"
         super().__init__(
             self.urdf_path, self.learnable_rigid_body_config, self.name, device=device

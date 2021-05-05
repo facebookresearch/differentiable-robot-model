@@ -9,7 +9,6 @@ import diff_robot_data
 from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
 )
-from differentiable_robot_model import LearnableRigidBodyConfig
 
 rel_urdf_path = "2link_robot.urdf"
 robot_description_folder = diff_robot_data.__path__[0]
@@ -18,10 +17,13 @@ urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 @pytest.fixture(params=["cuda", "cpu"])
 def robot_model(request):
+    device = request.param
+    if not torch.cuda.is_available():
+        device = "cpu"
     return DifferentiableRobotModel(
         urdf_path,
-        LearnableRigidBodyConfig(),
-        device=request.param,
+        learnable_rigid_body_config=None,
+        device=device,
     )
 
 
@@ -30,6 +32,9 @@ def robot_model(request):
 )
 def test_robot_model(robot_model, default_tensor_type):
     # Set default tensor type
+    if not torch.cuda.is_available():
+        default_tensor_type = torch.FloatTensor
+
     torch.set_default_tensor_type(default_tensor_type)
 
     # Method arguments

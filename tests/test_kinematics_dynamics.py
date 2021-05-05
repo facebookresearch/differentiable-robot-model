@@ -106,7 +106,9 @@ def sim(test_info):
 # Setup differentiable robot model
 @pytest.fixture
 def robot_model(test_info):
-    return DifferentiableRobotModel(test_info.urdf_path, LearnableRigidBodyConfig())
+    return DifferentiableRobotModel(
+        test_info.urdf_path, learnable_rigid_body_config=None
+    )
 
 
 # Setup test

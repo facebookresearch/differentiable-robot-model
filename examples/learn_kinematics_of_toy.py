@@ -25,28 +25,28 @@ torch.manual_seed(0)
 
 
 def run(n_epochs=3000, n_data=100, device="cpu"):
-    abs_config_dir = os.path.abspath(
-        os.path.join(differentiable_robot_model.__path__[0], "../conf")
-    )
-    # we load configurations for a ground truth robot , and a learnable robot model
-    with initialize_config_dir(config_dir=abs_config_dir):
-        # which parameters are learnable is specified in the config file
-        learnable_robot_model_cfg = hydra_compose(
-            config_name="torch_robot_model_learnable_kinematics_toy.yaml"
-        )
+    rel_urdf_path = "2link_robot.urdf"
+    robot_description_folder = diff_robot_data.__path__[0]
+    urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
-    gt_robot_model = DifferentiableTwoLinkRobot(device=device)
+    # set up learnable params
+    learnable_params = {}
+    learnable_params["trans"] = {}
 
-    urdf_path = os.path.join(
-        diff_robot_data.__path__[0], learnable_robot_model_cfg.model.rel_urdf_path
-    )
+    # specify learnable model details
+    # add all links that have a learnable component, use urdf link name
+    # any link that is not specified as learnable will be initialized from urdf
+    learnable_model_cfg = {}
+    learnable_model_cfg["learnable_links"] = ["arm1", "arm2"]
+    learnable_model_cfg["learnable_params"] = learnable_params
     learnable_robot_model = DifferentiableRobotModel(
-        urdf_path,
-        learnable_robot_model_cfg.model.learnable_rigid_body_config,
-        learnable_robot_model_cfg.model.name,
+        urdf_path=urdf_path,
+        learnable_rigid_body_config=learnable_model_cfg,
+        name="2link",
         device=device,
     )
 
+    gt_robot_model = DifferentiableTwoLinkRobot(device=device)
     train_data = generate_random_forward_kinematics_data(
         gt_robot_model, n_data=n_data, ee_name="endEffector"
     )
@@ -76,4 +76,4 @@ def run(n_epochs=3000, n_data=100, device="cpu"):
 
 
 if __name__ == "__main__":
-    run
+    run()
