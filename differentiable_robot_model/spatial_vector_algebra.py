@@ -6,7 +6,6 @@ TODO
 from __future__ import annotations
 from typing import Optional
 import torch
-import hydra
 import math
 from . import utils
 from .utils import cross_product
@@ -386,24 +385,17 @@ class LearnableSpatialRigidBodyInertia(DifferentiableSpatialRigidBodyInertia):
         learnable_params = learnable_rigid_body_config["learnable_params"]
         # we overwrite dynamics parameters
         if "mass" in learnable_params:
-            self.mass_fn = learnable_params["mass"]["module"].to(device)
-            # self.mass_fn = hydra.utils.instantiate(
-            #     learnable_rigid_body_config.mass_parametrization
-            # )
+            self.mass_fn = learnable_params["mass"]["module"](device=device)
         else:
             self.mass_fn = lambda: self.mass
 
         if "com" in learnable_params:
-            self.com_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.com_parametrization
-            ).to(device)
+            self.com_fn = learnable_params["com"]["module"](device=device)
         else:
             self.com_fn = lambda: self.com
 
         if "inertia_mat" in learnable_params:
-            self.inertia_mat_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.inertia_parametrization
-            ).to(device)
+            self.inertia_mat_fn = learnable_params["inertia_mat"]["module"](device=device)
         else:
             self.inertia_mat_fn = lambda: self.inertia_mat
 

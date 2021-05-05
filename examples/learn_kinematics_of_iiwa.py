@@ -9,7 +9,6 @@ from differentiable_robot_model.robot_model import (
     DifferentiableKUKAiiwa,
 )
 
-from differentiable_robot_model.rigid_body_params import UnconstrainedMassValue
 from differentiable_robot_model.data_utils import (
     generate_random_forward_kinematics_data,
 )
@@ -23,29 +22,38 @@ torch.manual_seed(0)
 
 def run(n_epochs=3000, n_data=100, device="cpu"):
 
-    gt_robot_model = DifferentiableKUKAiiwa(device=device)
+    """ setup learnable robot model """
+
+    # set up learnable params
+    learnable_params = {}
+
+    # specify learnable model details
+    # add all links that have a learnable component, use urdf link name
+    # any link that is not specified as learnable will be initialized from urdf
+    learnable_model_cfg = {}
+    learnable_model_cfg['learnable_links'] = ['iiwa_link_1', 'iiwa_link_2']
+    learnable_model_cfg['learnable_params'] = learnable_params
+
     urdf_path = os.path.join(
         diff_robot_data.__path__[0], "kuka_iiwa/urdf/iiwa7.urdf"
     )
-    learnable_model_cfg = {}
-    # add all links that have a learnable component, use urdf link name
-    learnable_model_cfg['learnable_links'] = ['iiwa_link_1', 'iiwa_link_2']
-    learnable_params = {}
-    learnable_params['mass'] = {'module': UnconstrainedMassValue}
-    learnable_model_cfg['learnable_params'] = learnable_params
 
     learnable_robot_model = DifferentiableRobotModel(
         urdf_path,
         learnable_model_cfg,
         "kuka_iiwa",
+        device=device
     )
 
+    """ generate training data via ground truth model """
+    gt_robot_model = DifferentiableKUKAiiwa(device=device)
     train_data = generate_random_forward_kinematics_data(
         gt_robot_model, n_data=n_data, ee_name="iiwa_link_ee"
     )
     q = train_data["q"]
     gt_ee_pos = train_data["ee_pos"]
 
+    """ optimize learnable params """
     optimizer = torch.optim.Adam(learnable_robot_model.parameters(), lr=1e-3)
     loss_fn = torch.nn.MSELoss()
     for i in range(n_epochs):

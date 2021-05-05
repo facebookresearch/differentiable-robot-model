@@ -19,8 +19,6 @@ from .spatial_vector_algebra import (
     LearnableSpatialRigidBodyInertia,
 )
 
-import hydra
-
 
 class DifferentiableRigidBody(torch.nn.Module):
     """
@@ -139,8 +137,8 @@ class LearnableRigidBody(DifferentiableRigidBody):
             learnable_rigid_body_config, gt_rigid_body_params, device=self._device
         )
         self.joint_damping = gt_rigid_body_params["joint_damping"]
-        learnable_params = learnable_rigid_body_config["learnable_params"]
 
+        learnable_params = learnable_rigid_body_config["learnable_params"]
         # kinematics parameters
         if "trans" in learnable_params:
             self.trans = torch.nn.Parameter(
