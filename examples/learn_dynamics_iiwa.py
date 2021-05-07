@@ -6,14 +6,20 @@ import random
 from torch.utils.data import DataLoader
 
 # potential mass parametrizations
-from differentiable_robot_model.rigid_body_params import UnconstrainedMassValue, PositiveMassValue
+from differentiable_robot_model.rigid_body_params import (
+    UnconstrainedMassValue,
+    PositiveMassValue,
+)
 
 # potential inertia matrix parametrizations
-from differentiable_robot_model.rigid_body_params import (InertiaMatrix3DNoStructureNet,
-                                                          CovParameterized3DInertiaMatrixNet,
-                                                          Symm3DInertiaMatrixNet,
-                                                          SymmPosDef3DInertiaMatrixNet,
-                                                          TriangParam3DInertiaMatrixNet)
+from differentiable_robot_model.rigid_body_params import (
+    InertiaMatrix3DNoStructureNet,
+    CovParameterized3DInertiaMatrixNet,
+    Symm3DInertiaMatrixNet,
+    SymmPosDef3DInertiaMatrixNet,
+    TriangParam3DInertiaMatrixNet,
+)
+
 # potential center of mass parametrizations
 from differentiable_robot_model.rigid_body_params import MCoM3DNet
 
@@ -47,26 +53,21 @@ class NMSELoss(torch.nn.Module):
 
 def run(n_epochs=10, n_data=1000, device="cpu"):
 
-    """ setup learnable robot model """
+    """setup learnable robot model"""
     learnable_model_cfg = {}
     # add all links that have a learnable component, use urdf link name
     # any link that is not specified as learnable will be initialized from urdf
-    learnable_model_cfg['learnable_links'] = ['iiwa_link_1', 'iiwa_link_2']
+    learnable_model_cfg["learnable_links"] = ["iiwa_link_1", "iiwa_link_2"]
     learnable_params = {}
-    learnable_params['mass'] = {'module': UnconstrainedMassValue}
-    learnable_params['com'] = {'module': MCoM3DNet}
-    learnable_params['inertia_mat'] = {'module': InertiaMatrix3DNoStructureNet}
-    learnable_model_cfg['learnable_params'] = learnable_params
+    learnable_params["mass"] = {"module": UnconstrainedMassValue}
+    learnable_params["com"] = {"module": MCoM3DNet}
+    learnable_params["inertia_mat"] = {"module": InertiaMatrix3DNoStructureNet}
+    learnable_model_cfg["learnable_params"] = learnable_params
 
-    urdf_path = os.path.join(
-        diff_robot_data.__path__[0], "kuka_iiwa/urdf/iiwa7.urdf"
-    )
+    urdf_path = os.path.join(diff_robot_data.__path__[0], "kuka_iiwa/urdf/iiwa7.urdf")
 
     learnable_robot_model = DifferentiableRobotModel(
-        urdf_path,
-        learnable_model_cfg,
-        "kuka_iiwa",
-        device=device
+        urdf_path, learnable_model_cfg, "kuka_iiwa", device=device
     )
 
     """ generate training data via ground truth model """
@@ -101,4 +102,4 @@ def run(n_epochs=10, n_data=1000, device="cpu"):
 
 
 if __name__ == "__main__":
-    run()
+    run(device="cuda")

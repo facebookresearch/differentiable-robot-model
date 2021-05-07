@@ -385,17 +385,17 @@ class LearnableSpatialRigidBodyInertia(DifferentiableSpatialRigidBodyInertia):
         learnable_params = learnable_rigid_body_config["learnable_params"]
         # we overwrite dynamics parameters
         if "mass" in learnable_params:
-            self.mass_fn = learnable_params["mass"]["module"](device=device)
+            self.mass_fn = learnable_params["mass"]["module"]().to(device)
         else:
             self.mass_fn = lambda: self.mass
 
         if "com" in learnable_params:
-            self.com_fn = learnable_params["com"]["module"](device=device)
+            self.com_fn = learnable_params["com"]["module"]().to(device)
         else:
             self.com_fn = lambda: self.com
 
         if "inertia_mat" in learnable_params:
-            self.inertia_mat_fn = learnable_params["inertia_mat"]["module"](device=device)
+            self.inertia_mat_fn = learnable_params["inertia_mat"]["module"]().to(device)
         else:
             self.inertia_mat_fn = lambda: self.inertia_mat
 

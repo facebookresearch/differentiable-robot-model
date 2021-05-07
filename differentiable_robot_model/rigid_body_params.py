@@ -38,7 +38,6 @@ class NoStructureNet(torch.nn.Module):
         is_using_positive_initial_guest=False,
         init_param=None,
         is_initializing_params=True,
-        device='cpu'
     ):
         self._dim1 = dim1
         self._dim2 = dim2
@@ -64,14 +63,13 @@ class NoStructureNet(torch.nn.Module):
 
 
 class MCoM3DNet(NoStructureNet):
-    def __init__(self, init_param=None, is_initializing_params=True, device='cpu'):
+    def __init__(self, init_param=None, is_initializing_params=True):
         super().__init__(
             dim1=1,
             dim2=3,
             is_using_positive_initial_guest=True,
             init_param=init_param,
             is_initializing_params=is_initializing_params,
-            device=device
         )
 
 
@@ -157,7 +155,7 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
     """
 
     def __init__(
-        self, bias, init_param_std=0.01, init_param=None, is_initializing_params=True, device='cpu'
+        self, bias, init_param_std=0.01, init_param=None, is_initializing_params=True
     ):
         self._qdim = 3
         self._bias = bias
@@ -166,7 +164,7 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
         if (init_param is None) or (not is_initializing_params):
             init_inertia_ori_axis_angle_param_value = torch.empty(1, 3).normal_(
                 mean=0.0, std=init_param_std
-            ).to(device)
+            )
             init_J1_param_value = None
             init_J2_param_value = None
             init_alpha_param_param_value = None
@@ -199,9 +197,9 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
 
             init_inertia_ori_axis_angle_param_value = torch.tensor(
                 init_inertia_ori_axis_angle_param_value, dtype=torch.float32
-            ).to(device)
-            init_J1_param_value = torch.tensor(init_J1_param_value, dtype=torch.float32).to(device)
-            init_J2_param_value = torch.tensor(init_J2_param_value, dtype=torch.float32).to(device)
+            )
+            init_J1_param_value = torch.tensor(init_J1_param_value, dtype=torch.float32)
+            init_J2_param_value = torch.tensor(init_J2_param_value, dtype=torch.float32)
             assert (
                 init_J1_param_value > bias
             ), "Please set bias value smaller, such that this condition is satisfied!"
@@ -214,7 +212,7 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
 
         self.inertia_ori_axis_angle = torch.nn.Parameter(
             init_inertia_ori_axis_angle_param_value.squeeze()
-        ).to(device)
+        )
         self.inertia_ori_axis_angle.requires_grad = True
 
         self.J1net = NonNegativeScalarNet(
@@ -222,14 +220,12 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
             init_param_std=0.1,
             init_param=init_J1_param_value,
             is_initializing_params=is_initializing_params,
-            device=device
         )
         self.J2net = NonNegativeScalarNet(
             bias=bias,
             init_param_std=0.1,
             init_param=init_J2_param_value,
             is_initializing_params=is_initializing_params,
-            device=device
         )
         self.alpha_param_net = NoStructureNet(
             dim1=1,
@@ -237,7 +233,6 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
             init_param_std=init_param_std,
             init_param=init_alpha_param_param_value,
             is_initializing_params=is_initializing_params,
-            device=device
         )
 
         self.J = None
@@ -280,12 +275,11 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
         init_param_std=0.01,
         init_param=None,
         is_initializing_params=True,
-        device='cpu'
     ):
         super().__init__(qdim=3, bias=0)
         self.spd_3d_cov_inertia_mat_diag_bias = bias
         if (init_param is None) or (not is_initializing_params):
-            init_param_value = torch.empty(1, 6).normal_(mean=0.0, std=init_param_std).to(device)
+            init_param_value = torch.empty(1, 6).normal_(mean=0.0, std=init_param_std)
         else:
             init_inertia_matrix = init_param.squeeze()
             init_spd_3d_cov_inertia_matrix = init_param.new_zeros((3, 3))
@@ -316,7 +310,7 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
                     - (self.spd_3d_cov_inertia_mat_diag_bias * np.eye(3))
                 ),
                 dtype=torch.float32,
-            ).to(device)
+            )
             diag_indices = np.diag_indices(
                 min(
                     init_spd_3d_cov_inertia_matrix.size(-2),
@@ -333,7 +327,7 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
             init_param_value = L[dim0_indices, dim1_indices].reshape(
                 (1, dim0_indices.shape[0])
             )
-        self.l = torch.nn.Parameter(init_param_value.squeeze()).to(device)
+        self.l = torch.nn.Parameter(init_param_value.squeeze())
         self.l.requires_grad = True
 
     def forward(self):
@@ -366,12 +360,16 @@ class CovParameterized3DInertiaMatrixNet(CholeskyNet):
 
 class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
     def __init__(
-        self, bias=1e-7, init_param_std=0.01, init_param=None, is_initializing_params=True, device='cpu'
+        self,
+        bias=1e-7,
+        init_param_std=0.01,
+        init_param=None,
+        is_initializing_params=True,
     ):
         super().__init__(qdim=3, bias=0)
         self.spd_3d_inertia_mat_diag_bias = bias
         if (init_param is None) or (not is_initializing_params):
-            init_param_value = torch.empty(1, 6).normal_(mean=0.0, std=init_param_std).to(device)
+            init_param_value = torch.empty(1, 6).normal_(mean=0.0, std=init_param_std)
         else:
             L = torch.tensor(
                 np.linalg.cholesky(
@@ -379,7 +377,7 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
                     - (self.spd_3d_inertia_mat_diag_bias * np.eye(3))
                 ),
                 dtype=torch.float32,
-            ).to(device)
+            )
             diag_indices = np.diag_indices(
                 min(init_param.size(-2), init_param.size(-1))
             )
@@ -391,7 +389,7 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
             init_param_value = L[dim0_indices, dim1_indices].reshape(
                 (1, dim0_indices.shape[0])
             )
-        self.l = torch.nn.Parameter(init_param_value.squeeze()).to(device)
+        self.l = torch.nn.Parameter(init_param_value.squeeze())
         self.l.requires_grad = True
 
     def forward(self):
@@ -407,18 +405,18 @@ class SymmPosDef3DInertiaMatrixNet(CholeskyNet):
 
 class Symm3DInertiaMatrixNet(SymmMatNet):
     def __init__(
-        self, init_param_std=0.01, init_param=None, is_initializing_params=True, device='cpu'
+        self, init_param_std=0.01, init_param=None, is_initializing_params=True
     ):
         super().__init__(qdim=3)
         if (init_param is None) or (not is_initializing_params):
-            init_param_value = torch.empty(1, 6).normal_(mean=0.0, std=init_param_std).to(device)
+            init_param_value = torch.empty(1, 6).normal_(mean=0.0, std=init_param_std)
         else:
             diag_indices = np.diag_indices(3)
             tril_indices = np.tril_indices(3, k=-1, m=3)
             dim0_indices = np.hstack([diag_indices[0], tril_indices[0]])
             dim1_indices = np.hstack([diag_indices[1], tril_indices[1]])
             init_param_value = init_param[0, dim0_indices, dim1_indices].reshape((1, 6))
-        self.l = torch.nn.Parameter(init_param_value.squeeze()).to(device)
+        self.l = torch.nn.Parameter(init_param_value.squeeze())
         self.l.requires_grad = True
 
     def forward(self):
@@ -426,38 +424,37 @@ class Symm3DInertiaMatrixNet(SymmMatNet):
 
 
 class InertiaMatrix3DNoStructureNet(NoStructureNet):
-    def __init__(self, init_param=None, is_initializing_params=True, device='cpu'):
+    def __init__(self, init_param=None, is_initializing_params=True):
         super().__init__(
             dim1=3,
             dim2=3,
             init_param=init_param,
             is_initializing_params=is_initializing_params,
-            device=device
         )
 
 
 class UnconstrainedMassValue(torch.nn.Module):
-    def __init__(self, init_val=None, device="cpu"):
+    def __init__(self, init_val=None):
         super(UnconstrainedMassValue, self).__init__()
         if init_val is None:
-            self.mass = torch.nn.Parameter(torch.rand(1)).to(device)
+            self.mass = torch.nn.Parameter(torch.rand(1))
         else:
-            self.mass = torch.nn.Parameter(init_val).to(device)
+            self.mass = torch.nn.Parameter(init_val)
 
     def forward(self):
         return self.mass
 
 
 class PositiveMassValue(torch.nn.Module):
-    def __init__(self, init_val=None, device="cpu"):
+    def __init__(self, init_val=None):
         super(PositiveMassValue, self).__init__()
-        self.min_mass_val = torch.tensor(0.01, dtype=torch.float32).to(device)
+        self.min_mass_val = torch.tensor(0.01, dtype=torch.float32)
 
         if init_val is None:
             init_param_value = torch.sqrt(torch.rand(1) ** 2)
         else:
             init_param_value = torch.sqrt(init_val)
-        self.sqrt_mass = torch.nn.Parameter(init_param_value).to(device)
+        self.sqrt_mass = torch.nn.Parameter(init_param_value)
 
     def forward(self):
         return self.sqrt_mass * self.sqrt_mass + self.min_mass_val
