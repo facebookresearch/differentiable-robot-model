@@ -4,9 +4,6 @@ import torch
 import random
 import os
 
-from hydra.experimental import compose as hydra_compose
-from hydra.experimental import initialize_config_dir
-
 from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
     DifferentiableTwoLinkRobot,
@@ -14,7 +11,8 @@ from differentiable_robot_model.robot_model import (
 from differentiable_robot_model.data_utils import (
     generate_random_forward_kinematics_data,
 )
-import differentiable_robot_model
+
+from differentiable_robot_model.rigid_body_params import UnconstrainedTensor
 import diff_robot_data
 
 torch.set_printoptions(precision=3, sci_mode=False)
@@ -29,21 +27,14 @@ def run(n_epochs=3000, n_data=100, device="cpu"):
     robot_description_folder = diff_robot_data.__path__[0]
     urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
-    # set up learnable params
-    learnable_params = {}
-    learnable_params["trans"] = {}
-
-    # specify learnable model details
-    # add all links that have a learnable component, use urdf link name
-    # any link that is not specified as learnable will be initialized from urdf
-    learnable_model_cfg = {}
-    learnable_model_cfg["learnable_links"] = ["arm1", "arm2"]
-    learnable_model_cfg["learnable_params"] = learnable_params
     learnable_robot_model = DifferentiableRobotModel(
-        urdf_path=urdf_path,
-        learnable_rigid_body_config=learnable_model_cfg,
-        name="2link",
-        device=device,
+        urdf_path=urdf_path, name="2link", device=device
+    )
+    learnable_robot_model.make_link_param_learnable(
+        "arm1", "trans", UnconstrainedTensor(dim1=1, dim2=3)
+    )
+    learnable_robot_model.make_link_param_learnable(
+        "arm2", "trans", UnconstrainedTensor(dim1=1, dim2=3)
     )
 
     gt_robot_model = DifferentiableTwoLinkRobot(device=device)

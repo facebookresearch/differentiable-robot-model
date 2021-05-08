@@ -316,13 +316,15 @@ class SpatialForceVec(object):
 class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
     def __init__(self, rigid_body_params, device="cpu"):
         super().__init__()
-        self.mass = rigid_body_params["mass"]
-        self.com = rigid_body_params["com"]
-        self.inertia_mat = rigid_body_params["inertia_mat"]
+        # lambda functions are a "hack" to make this compatible with the learnable variants
+        self.mass = lambda: rigid_body_params["mass"]
+        self.com = lambda: rigid_body_params["com"]
+        self.inertia_mat = lambda: rigid_body_params["inertia_mat"]
+
         self._device = torch.device(device)
 
     def _get_parameter_values(self):
-        return self.mass, self.com, self.inertia_mat
+        return self.mass(), self.com(), self.inertia_mat()
 
     def multiply_motion_vec(self, smv):
         mass, com, inertia_mat = self._get_parameter_values()
@@ -376,28 +378,3 @@ class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
         mat[4, 4] = mass
         mat[5, 5] = mass
         return mat
-
-
-class LearnableSpatialRigidBodyInertia(DifferentiableSpatialRigidBodyInertia):
-    def __init__(self, learnable_rigid_body_config, rigid_body_params, device="cpu"):
-        super().__init__(rigid_body_params, device=device)
-
-        learnable_params = learnable_rigid_body_config["learnable_params"]
-        # we overwrite dynamics parameters
-        if "mass" in learnable_params:
-            self.mass_fn = learnable_params["mass"]["module"]().to(device)
-        else:
-            self.mass_fn = lambda: self.mass
-
-        if "com" in learnable_params:
-            self.com_fn = learnable_params["com"]["module"]().to(device)
-        else:
-            self.com_fn = lambda: self.com
-
-        if "inertia_mat" in learnable_params:
-            self.inertia_mat_fn = learnable_params["inertia_mat"]["module"]().to(device)
-        else:
-            self.inertia_mat_fn = lambda: self.inertia_mat
-
-    def _get_parameter_values(self):
-        return self.mass_fn(), self.com_fn(), self.inertia_mat_fn()

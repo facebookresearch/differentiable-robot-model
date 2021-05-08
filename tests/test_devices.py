@@ -2,7 +2,6 @@
 import os
 
 import torch
-import numpy as np
 import pytest
 
 import diff_robot_data
@@ -20,11 +19,7 @@ def robot_model(request):
     device = request.param
     if not torch.cuda.is_available():
         device = "cpu"
-    return DifferentiableRobotModel(
-        urdf_path,
-        learnable_rigid_body_config=None,
-        device=device,
-    )
+    return DifferentiableRobotModel(urdf_path, device=device)
 
 
 @pytest.mark.parametrize(

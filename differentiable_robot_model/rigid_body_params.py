@@ -11,66 +11,49 @@ import math
 from . import se3_so3_util, utils
 
 
-class NonNegativeScalarNet(torch.nn.Module):
-    def __init__(
-        self, bias=0.0, init_param_std=1.0, init_param=None, is_initializing_params=True
-    ):
-        self._bias = bias
-        super().__init__()
-        if (init_param is None) or (not is_initializing_params):
-            init_param_value = torch.empty(1, 1).normal_(mean=0.0, std=init_param_std)
+class UnconstrainedScalar(torch.nn.Module):
+    def __init__(self, init_val=None):
+        super(UnconstrainedScalar, self).__init__()
+        if init_val is None:
+            self.param = torch.nn.Parameter(torch.rand(1))
         else:
-            init_param_value = torch.sqrt(init_param - self._bias)
-        self.l = torch.nn.Parameter(init_param_value.squeeze())
-        self.l.requires_grad = True
+            self.param = torch.nn.Parameter(init_val)
 
     def forward(self):
-        non_negative_scalar = ((self.l * self.l) + self._bias).squeeze()
-        return non_negative_scalar
+        return self.param
 
 
-class NoStructureNet(torch.nn.Module):
+class PositiveScalar(torch.nn.Module):
     def __init__(
         self,
-        dim1,
-        dim2,
+        min_val=0.0,
         init_param_std=1.0,
-        is_using_positive_initial_guest=False,
         init_param=None,
-        is_initializing_params=True,
     ):
-        self._dim1 = dim1
-        self._dim2 = dim2
         super().__init__()
-        if (init_param is None) or (not is_initializing_params):
-            if is_using_positive_initial_guest:
-                init_param_value = torch.abs(
-                    torch.empty(self._dim1, self._dim2).normal_(
-                        mean=0.0, std=init_param_std
-                    )
-                )
-            else:
-                init_param_value = torch.empty(self._dim1, self._dim2).normal_(
-                    mean=0.0, std=init_param_std
-                )
+        self._min_val = min_val
+        if init_param is None:
+            init_param_value = torch.empty(1, 1).normal_(mean=0.0, std=init_param_std)
         else:
-            init_param_value = init_param
-        self.params = torch.nn.Parameter(init_param_value)
-        self.params.requires_grad = True
+            init_param_value = torch.sqrt(init_param - self._min_val)
+        self.l = torch.nn.Parameter(init_param_value.squeeze())
 
     def forward(self):
-        return self.params
+        positive_value = ((self.l * self.l) + self._min_val).squeeze()
+        return positive_value
 
 
-class MCoM3DNet(NoStructureNet):
-    def __init__(self, init_param=None, is_initializing_params=True):
-        super().__init__(
-            dim1=1,
-            dim2=3,
-            is_using_positive_initial_guest=True,
-            init_param=init_param,
-            is_initializing_params=is_initializing_params,
-        )
+class UnconstrainedTensor(torch.nn.Module):
+    def __init__(self, dim1, dim2, init_tensor=None, init_std=0.1):
+        super().__init__()
+        self._dim1 = dim1
+        self._dim2 = dim2
+        if init_tensor is None:
+            init_tensor = torch.empty(dim1, dim2).normal_(mean=0.0, std=init_std)
+        self.param = torch.nn.Parameter(init_tensor)
+
+    def forward(self):
+        return self.param
 
 
 class SymmMatNet(torch.nn.Module):
@@ -215,19 +198,19 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
         )
         self.inertia_ori_axis_angle.requires_grad = True
 
-        self.J1net = NonNegativeScalarNet(
-            bias=bias,
+        self.J1net = PositiveScalar(
+            min_val=bias,
             init_param_std=0.1,
             init_param=init_J1_param_value,
             is_initializing_params=is_initializing_params,
         )
-        self.J2net = NonNegativeScalarNet(
-            bias=bias,
+        self.J2net = PositiveScalar(
+            min_val=bias,
             init_param_std=0.1,
             init_param=init_J2_param_value,
             is_initializing_params=is_initializing_params,
         )
-        self.alpha_param_net = NoStructureNet(
+        self.alpha_param_net = UnconstrainedTensor(
             dim1=1,
             dim2=1,
             init_param_std=init_param_std,
@@ -421,40 +404,3 @@ class Symm3DInertiaMatrixNet(SymmMatNet):
 
     def forward(self):
         return super().forward(self.l.unsqueeze(0)).squeeze()
-
-
-class InertiaMatrix3DNoStructureNet(NoStructureNet):
-    def __init__(self, init_param=None, is_initializing_params=True):
-        super().__init__(
-            dim1=3,
-            dim2=3,
-            init_param=init_param,
-            is_initializing_params=is_initializing_params,
-        )
-
-
-class UnconstrainedMassValue(torch.nn.Module):
-    def __init__(self, init_val=None):
-        super(UnconstrainedMassValue, self).__init__()
-        if init_val is None:
-            self.mass = torch.nn.Parameter(torch.rand(1))
-        else:
-            self.mass = torch.nn.Parameter(init_val)
-
-    def forward(self):
-        return self.mass
-
-
-class PositiveMassValue(torch.nn.Module):
-    def __init__(self, init_val=None):
-        super(PositiveMassValue, self).__init__()
-        self.min_mass_val = torch.tensor(0.01, dtype=torch.float32)
-
-        if init_val is None:
-            init_param_value = torch.sqrt(torch.rand(1) ** 2)
-        else:
-            init_param_value = torch.sqrt(init_val)
-        self.sqrt_mass = torch.nn.Parameter(init_param_value)
-
-    def forward(self):
-        return self.sqrt_mass * self.sqrt_mass + self.min_mass_val

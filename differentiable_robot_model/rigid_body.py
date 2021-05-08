@@ -16,7 +16,6 @@ from .spatial_vector_algebra import (
 from .spatial_vector_algebra import SpatialForceVec, SpatialMotionVec
 from .spatial_vector_algebra import (
     DifferentiableSpatialRigidBodyInertia,
-    LearnableSpatialRigidBodyInertia,
 )
 
 
@@ -33,22 +32,22 @@ class DifferentiableRigidBody(torch.nn.Module):
         self.joint_id = rigid_body_params["joint_id"]
         self.name = rigid_body_params["link_name"]
 
-        # dynamics parameters
-        self.joint_damping = rigid_body_params["joint_damping"]
+        # parameters that can be made learnable
         self.inertia = DifferentiableSpatialRigidBodyInertia(
             rigid_body_params, device=self._device
         )
-
-        # kinematics parameters
-        self.trans = rigid_body_params["trans"]
-        self.rot_angles = rigid_body_params["rot_angles"]
-        self.joint_limits = rigid_body_params["joint_limits"]
+        self.joint_damping = lambda: rigid_body_params["joint_damping"]
+        self.trans = lambda: rigid_body_params["trans"].reshape(1, 3)
+        self.rot_angles = lambda: rigid_body_params["rot_angles"].reshape(1, 3)
+        # end parameters that can be made learnable
 
         # local joint axis (w.r.t. joint coordinate frame):
         self.joint_axis = rigid_body_params["joint_axis"]
 
+        self.joint_limits = rigid_body_params["joint_limits"]
+
         self.joint_pose = CoordinateTransform(device=self._device)
-        self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
+        self.joint_pose.set_translation(torch.reshape(self.trans(), (1, 3)))
 
         # local velocities and accelerations (w.r.t. joint coordinate frame):
         self.joint_vel = SpatialMotionVec(device=self._device)
@@ -77,14 +76,15 @@ class DifferentiableRigidBody(torch.nn.Module):
             torch.zeros_like(joint_ang_vel), joint_ang_vel
         )
 
-        roll = self.rot_angles[0]
-        pitch = self.rot_angles[1]
-        yaw = self.rot_angles[2]
+        rot_angles_vals = self.rot_angles()
+        roll = rot_angles_vals[0, 0]
+        pitch = rot_angles_vals[0, 1]
+        yaw = rot_angles_vals[0, 2]
 
         fixed_rotation = (z_rot(yaw) @ y_rot(pitch)) @ x_rot(roll)
 
         # when we update the joint angle, we also need to update the transformation
-        self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
+        self.joint_pose.set_translation(torch.reshape(self.trans(), (1, 3)))
         if torch.abs(self.joint_axis[0, 0]) == 1:
             rot = x_rot(torch.sign(self.joint_axis[0, 0]) * q)
         elif torch.abs(self.joint_axis[0, 1]) == 1:
@@ -107,48 +107,4 @@ class DifferentiableRigidBody(torch.nn.Module):
         return self.joint_limits
 
     def get_joint_damping_const(self):
-        return self.joint_damping
-
-
-class LearnableRigidBodyConfig:
-    def __init__(
-            self,
-            learnable_links=[],
-            learnable_kinematics_params=[],
-            learnable_dynamics_params=[],
-    ):
-        self.learnable_links = learnable_links
-        self.learnable_kinematics_params = learnable_kinematics_params
-        self.learnable_dynamics_params = learnable_dynamics_params
-
-
-class LearnableRigidBody(DifferentiableRigidBody):
-    r"""
-
-    Learnable Representation of a link
-
-    """
-
-    def __init__(self, learnable_rigid_body_config, gt_rigid_body_params, device="cpu"):
-
-        super().__init__(rigid_body_params=gt_rigid_body_params, device=device)
-
-        self.inertia = LearnableSpatialRigidBodyInertia(
-            learnable_rigid_body_config, gt_rigid_body_params, device=self._device
-        )
-        self.joint_damping = gt_rigid_body_params["joint_damping"]
-
-        learnable_params = learnable_rigid_body_config["learnable_params"]
-        # kinematics parameters
-        if "trans" in learnable_params:
-            self.trans = torch.nn.Parameter(
-                torch.rand_like(gt_rigid_body_params["trans"])
-            )
-            self.joint_pose.set_translation(torch.reshape(self.trans, (1, 3)))
-
-        if "rot_angles" in learnable_params:
-            self.rot_angles = torch.nn.Parameter(gt_rigid_body_params["rot_angles"])
-
-        return
-
-
+        return self.joint_damping()

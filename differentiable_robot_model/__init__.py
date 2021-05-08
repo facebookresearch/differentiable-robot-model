@@ -10,4 +10,3 @@ from .robot_model import (
     DifferentiableFrankaPanda,
     DifferentiableTwoLinkRobot,
 )
-from .rigid_body import LearnableRigidBodyConfig

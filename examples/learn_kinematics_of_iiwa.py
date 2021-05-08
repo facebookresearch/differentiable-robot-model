@@ -9,6 +9,8 @@ from differentiable_robot_model.robot_model import (
     DifferentiableKUKAiiwa,
 )
 
+from differentiable_robot_model.rigid_body_params import UnconstrainedTensor
+
 from differentiable_robot_model.data_utils import (
     generate_random_forward_kinematics_data,
 )
@@ -24,21 +26,15 @@ def run(n_epochs=3000, n_data=100, device="cpu"):
 
     """setup learnable robot model"""
 
-    # set up learnable params
-    learnable_params = {}
-    learnable_params["trans"] = {}
-
-    # specify learnable model details
-    # add all links that have a learnable component, use urdf link name
-    # any link that is not specified as learnable will be initialized from urdf
-    learnable_model_cfg = {}
-    learnable_model_cfg["learnable_links"] = ["iiwa_link_1", "iiwa_link_2"]
-    learnable_model_cfg["learnable_params"] = learnable_params
-
     urdf_path = os.path.join(diff_robot_data.__path__[0], "kuka_iiwa/urdf/iiwa7.urdf")
-
     learnable_robot_model = DifferentiableRobotModel(
-        urdf_path, learnable_model_cfg, "kuka_iiwa", device=device
+        urdf_path, "kuka_iiwa", device=device
+    )
+    learnable_robot_model.make_link_param_learnable(
+        "iiwa_link_1", "trans", UnconstrainedTensor(dim1=1, dim2=3)
+    )
+    learnable_robot_model.make_link_param_learnable(
+        "iiwa_link_1", "rot_angles", UnconstrainedTensor(dim1=1, dim2=3)
     )
 
     """ generate training data via ground truth model """
