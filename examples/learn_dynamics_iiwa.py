@@ -5,15 +5,25 @@ import torch
 import random
 from torch.utils.data import DataLoader
 
-from hydra.experimental import compose as hydra_compose
-from hydra.experimental import initialize_config_dir
+from differentiable_robot_model.rigid_body_params import (
+    UnconstrainedScalar,
+    PositiveScalar,
+    UnconstrainedTensor,
+)
 
-import differentiable_robot_model
-from differentiable_robot_model.differentiable_robot_model import (
+# potential inertia matrix parametrizations
+from differentiable_robot_model.rigid_body_params import (
+    CovParameterized3DInertiaMatrixNet,
+    Symm3DInertiaMatrixNet,
+    SymmPosDef3DInertiaMatrixNet,
+    TriangParam3DInertiaMatrixNet,
+)
+
+from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
     DifferentiableKUKAiiwa,
 )
-from differentiable_robot_model.data_generation_utils import (
+from differentiable_robot_model.data_utils import (
     generate_sine_motion_inverse_dynamics_data,
 )
 import diff_robot_data
@@ -37,33 +47,35 @@ class NMSELoss(torch.nn.Module):
 
 
 def run(n_epochs=10, n_data=1000, device="cpu"):
-    abs_config_dir = os.path.abspath(
-        os.path.join(differentiable_robot_model.__path__[0], "../conf")
-    )
-    with initialize_config_dir(config_dir=abs_config_dir):
-        learnable_robot_model_cfg = hydra_compose(
-            config_name="torch_robot_model_learnable_l4dc_constraints.yaml"
-        )
 
+    """setup learnable robot model"""
+    urdf_path = os.path.join(diff_robot_data.__path__[0], "kuka_iiwa/urdf/iiwa7.urdf")
+
+    learnable_robot_model = DifferentiableRobotModel(
+        urdf_path, name="kuka_iiwa", device=device
+    )
+    learnable_robot_model.make_link_param_learnable(
+        "iiwa_link_1", "mass", PositiveScalar()
+    )
+    learnable_robot_model.make_link_param_learnable(
+        "iiwa_link_1", "inertia_mat", UnconstrainedTensor(dim1=3, dim2=3)
+    )
+    learnable_robot_model.make_link_param_learnable(
+        "iiwa_link_1", "trans", UnconstrainedTensor(dim1=1, dim2=3)
+    )
+
+    """ generate training data via ground truth model """
     # ground truth robot model (with known kinematics and dynamics parameters) - used to generate data
     gt_robot_model = DifferentiableKUKAiiwa(device=device)
     gt_robot_model.print_link_names()
 
     train_data = generate_sine_motion_inverse_dynamics_data(
-        gt_robot_model, n_data=1000, dt=1.0 / 250.0, freq=0.05
+        gt_robot_model, n_data=n_data, dt=1.0 / 250.0, freq=0.05
     )
     train_loader = DataLoader(dataset=train_data, batch_size=100, shuffle=False)
 
-    # learnable robot model
-    urdf_path = os.path.join(
-        diff_robot_data.__path__[0], learnable_robot_model_cfg.model.rel_urdf_path
-    )
-    learnable_robot_model = DifferentiableRobotModel(
-        urdf_path,
-        learnable_robot_model_cfg.model.learnable_rigid_body_config,
-        learnable_robot_model_cfg.model.name,
-        device=device,
-    )
+    """ optimize learnable params """
+    learnable_robot_model.print_learnable_params()
     optimizer = torch.optim.Adam(learnable_robot_model.parameters(), lr=1e-2)
     loss_fn = NMSELoss(train_data.var())
     for i in range(n_epochs):
@@ -85,4 +97,4 @@ def run(n_epochs=10, n_data=1000, device="cpu"):
 
 
 if __name__ == "__main__":
-    run()
+    run(device="cuda")

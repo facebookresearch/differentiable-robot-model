@@ -2,13 +2,11 @@
 import os
 
 import torch
-import numpy as np
 import pytest
 
 import diff_robot_data
-from differentiable_robot_model.differentiable_robot_model import (
+from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
-    LearnableRigidBodyConfig,
 )
 
 rel_urdf_path = "2link_robot.urdf"
@@ -18,11 +16,10 @@ urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
 
 @pytest.fixture(params=["cuda", "cpu"])
 def robot_model(request):
-    return DifferentiableRobotModel(
-        urdf_path,
-        LearnableRigidBodyConfig(),
-        device=request.param,
-    )
+    device = request.param
+    if not torch.cuda.is_available():
+        device = "cpu"
+    return DifferentiableRobotModel(urdf_path, device=device)
 
 
 @pytest.mark.parametrize(
@@ -30,6 +27,9 @@ def robot_model(request):
 )
 def test_robot_model(robot_model, default_tensor_type):
     # Set default tensor type
+    if not torch.cuda.is_available():
+        default_tensor_type = torch.FloatTensor
+
     torch.set_default_tensor_type(default_tensor_type)
 
     # Method arguments

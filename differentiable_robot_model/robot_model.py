@@ -10,9 +10,8 @@ import os
 
 import torch
 
-from .differentiable_rigid_body import (
+from .rigid_body import (
     DifferentiableRigidBody,
-    LearnableRigidBody,
 )
 from .spatial_vector_algebra import SpatialMotionVec, SpatialForceVec
 from .urdf_utils import URDFRobotModel
@@ -53,13 +52,7 @@ class DifferentiableRobotModel(torch.nn.Module):
     TODO
     """
 
-    def __init__(
-        self,
-        urdf_path: str,
-        learnable_rigid_body_config=None,
-        name="",
-        device=None,
-    ):
+    def __init__(self, urdf_path: str, name="", device=None):
 
         super().__init__()
 
@@ -83,18 +76,9 @@ class DifferentiableRobotModel(torch.nn.Module):
 
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
 
-            if (learnable_rigid_body_config is not None) and (
-                link.name in learnable_rigid_body_config.learnable_links
-            ):
-                body = LearnableRigidBody(
-                    learnable_rigid_body_config=learnable_rigid_body_config,
-                    gt_rigid_body_params=rigid_body_params,
-                    device=self._device,
-                )
-            else:
-                body = DifferentiableRigidBody(
-                    rigid_body_params=rigid_body_params, device=self._device
-                )
+            body = DifferentiableRigidBody(
+                rigid_body_params=rigid_body_params, device=self._device
+            )
 
             body.joint_idx = None
             if rigid_body_params["joint_type"] != "fixed":
@@ -597,6 +581,21 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return lin_jac, ang_jac
 
+    def make_link_param_learnable(
+        self, link_name: str, parameter_name: str, parametrization: torch.nn.Module
+    ):
+        body_idx = self._name_to_idx_map[link_name]
+        if parameter_name in ["trans", "rot_angles", "joint_damping"]:
+            self._bodies[body_idx].__delattr__(parameter_name)
+            self._bodies[body_idx].add_module(
+                parameter_name, parametrization.to(self._device)
+            )
+        elif parameter_name in ["mass", "inertia_mat", "com"]:
+            self._bodies[body_idx].inertia.__delattr__(parameter_name)
+            self._bodies[body_idx].inertia.add_module(
+                parameter_name, parametrization.to(self._device)
+            )
+
     def get_joint_limits(self) -> List[Dict[str, torch.Tensor]]:
         r"""
 
@@ -639,46 +638,28 @@ class DifferentiableRobotModel(torch.nn.Module):
             print(f"{name}: {param}")
 
 
-class LearnableRigidBodyConfig:
-    def __init__(
-        self,
-        learnable_links=[],
-        learnable_kinematics_params=[],
-        learnable_dynamics_params=[],
-    ):
-        self.learnable_links = learnable_links
-        self.learnable_kinematics_params = learnable_kinematics_params
-        self.learnable_dynamics_params = learnable_dynamics_params
-
-
 class DifferentiableKUKAiiwa(DifferentiableRobotModel):
     def __init__(self, device=None):
         rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
-        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.learnable_rigid_body_config = None
         self.name = "differentiable_kuka_iiwa"
-        super().__init__(
-            self.urdf_path, self.learnable_rigid_body_config, self.name, device=device
-        )
+        super().__init__(self.urdf_path, self.name, device=device)
 
 
 class DifferentiableFrankaPanda(DifferentiableRobotModel):
     def __init__(self, device=None):
         rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
-        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.learnable_rigid_body_config = None
         self.name = "differentiable_franka_panda"
-        super().__init__(
-            self.urdf_path, self.learnable_rigid_body_config, self.name, device=device
-        )
+        super().__init__(self.urdf_path, self.name, device=device)
 
 
 class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
     def __init__(self, device=None):
         rel_urdf_path = "2link_robot.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
-        self.learnable_rigid_body_config = LearnableRigidBodyConfig()
+        self.learnable_rigid_body_config = None
         self.name = "diff_2d_robot"
-        super().__init__(
-            self.urdf_path, self.learnable_rigid_body_config, self.name, device=device
-        )
+        super().__init__(self.urdf_path, self.name, device=device)

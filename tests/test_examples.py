@@ -30,4 +30,6 @@ def set_seed():
 )
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
 def test_examples(experiment, device):
+    if not torch.cuda.is_available():
+        device = "cpu"
     experiment.run(n_epochs=2, n_data=250, device=device)
