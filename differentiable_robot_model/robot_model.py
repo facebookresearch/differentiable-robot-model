@@ -586,15 +586,39 @@ class DifferentiableRobotModel(torch.nn.Module):
     ):
         body_idx = self._name_to_idx_map[link_name]
         if parameter_name in ["trans", "rot_angles", "joint_damping"]:
-            self._bodies[body_idx].__delattr__(parameter_name)
-            self._bodies[body_idx].add_module(
-                parameter_name, parametrization.to(self._device)
-            )
+            parent_object = self._bodies[body_idx]
         elif parameter_name in ["mass", "inertia_mat", "com"]:
-            self._bodies[body_idx].inertia.__delattr__(parameter_name)
-            self._bodies[body_idx].inertia.add_module(
-                parameter_name, parametrization.to(self._device)
+            parent_object = self._bodies[body_idx].inertia
+        else:
+            raise AttributeError(
+                "Invalid parameter name. Accepted parameter names are: trans, rot_angles, joint_damping, mass, inertia_mat, com"
             )
+
+        # Replace current parameter with a learnable module
+        parent_object.__delattr__(parameter_name)
+        parent_object.add_module(parameter_name, parametrization.to(self._device))
+
+    def make_link_param_unlearnable(self, link_name: str, parameter_name: str):
+        body_idx = self._name_to_idx_map[link_name]
+        if parameter_name in ["trans", "rot_angles", "joint_damping"]:
+            parent_object = self._bodies[body_idx]
+        elif parameter_name in ["mass", "inertia_mat", "com"]:
+            parent_object = self._bodies[body_idx].inertia
+        else:
+            raise AttributeError(
+                "Invalid parameter name. Accepted parameter names are: trans, rot_angles, joint_damping, mass, inertia_mat, com"
+            )
+
+        # Get output value of current module
+        param_module = getattr(parent_object, parameter_name)
+        assert (
+            type(param_module) is torch.nn.Module
+        ), f"{parameter_name} of {link_name} is not a learnable module."
+        param_val = param_module()
+
+        # Replace current module with a parameter
+        parent_object.__delattr__(parameter_name)
+        parent_object.register_parameter(parameter_name, param_val)
 
     def get_joint_limits(self) -> List[Dict[str, torch.Tensor]]:
         r"""
