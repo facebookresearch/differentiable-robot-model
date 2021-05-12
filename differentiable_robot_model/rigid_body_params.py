@@ -202,20 +202,17 @@ class TriangParam3DInertiaMatrixNet(torch.nn.Module):
             min_val=bias,
             init_param_std=0.1,
             init_param=init_J1_param_value,
-            is_initializing_params=is_initializing_params,
         )
         self.J2net = PositiveScalar(
             min_val=bias,
             init_param_std=0.1,
             init_param=init_J2_param_value,
-            is_initializing_params=is_initializing_params,
         )
         self.alpha_param_net = UnconstrainedTensor(
             dim1=1,
             dim2=1,
-            init_param_std=init_param_std,
+            init_std=init_param_std,
             init_param=init_alpha_param_param_value,
-            is_initializing_params=is_initializing_params,
         )
 
         self.J = None

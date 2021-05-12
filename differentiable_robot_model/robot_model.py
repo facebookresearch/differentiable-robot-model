@@ -581,9 +581,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         return lin_jac, ang_jac
 
-    def make_link_param_learnable(
-        self, link_name: str, parameter_name: str, parametrization: torch.nn.Module
-    ):
+    def _get_parent_object_of_param(self, link_name: str, parameter_name: str):
         body_idx = self._name_to_idx_map[link_name]
         if parameter_name in ["trans", "rot_angles", "joint_damping"]:
             parent_object = self._bodies[body_idx]
@@ -591,34 +589,42 @@ class DifferentiableRobotModel(torch.nn.Module):
             parent_object = self._bodies[body_idx].inertia
         else:
             raise AttributeError(
-                "Invalid parameter name. Accepted parameter names are: trans, rot_angles, joint_damping, mass, inertia_mat, com"
+                "Invalid parameter name. Accepted parameter names are: "
+                "trans, rot_angles, joint_damping, mass, inertia_mat, com"
             )
+        return parent_object
 
+    def make_link_param_learnable(
+        self, link_name: str, parameter_name: str, parametrization: torch.nn.Module
+    ):
+        parent_object = self._get_parent_object_of_param(link_name, parameter_name)
         # Replace current parameter with a learnable module
         parent_object.__delattr__(parameter_name)
         parent_object.add_module(parameter_name, parametrization.to(self._device))
 
-    def make_link_param_unlearnable(self, link_name: str, parameter_name: str):
-        body_idx = self._name_to_idx_map[link_name]
-        if parameter_name in ["trans", "rot_angles", "joint_damping"]:
-            parent_object = self._bodies[body_idx]
-        elif parameter_name in ["mass", "inertia_mat", "com"]:
-            parent_object = self._bodies[body_idx].inertia
-        else:
-            raise AttributeError(
-                "Invalid parameter name. Accepted parameter names are: trans, rot_angles, joint_damping, mass, inertia_mat, com"
-            )
+    def freeze_learnable_link_param(self, link_name: str, parameter_name: str):
 
+        parent_object = self._get_parent_object_of_param(link_name, parameter_name)
         # Get output value of current module
         param_module = getattr(parent_object, parameter_name)
         assert (
-            type(param_module) is torch.nn.Module
+            type(param_module).__bases__[0] is torch.nn.Module
         ), f"{parameter_name} of {link_name} is not a learnable module."
-        param_val = param_module()
 
-        # Replace current module with a parameter
-        parent_object.__delattr__(parameter_name)
-        parent_object.register_parameter(parameter_name, param_val)
+        for param in param_module.parameters():
+            param.requires_grad = False
+
+    def unfreeze_learnable_link_param(self, link_name: str, parameter_name: str):
+
+        parent_object = self._get_parent_object_of_param(link_name, parameter_name)
+        # Get output value of current module
+        param_module = getattr(parent_object, parameter_name)
+        assert (
+            type(param_module).__bases__[0] is torch.nn.Module
+        ), f"{parameter_name} of {link_name} is not a learnable module."
+
+        for param in param_module.parameters():
+            param.requires_grad = True
 
     def get_joint_limits(self) -> List[Dict[str, torch.Tensor]]:
         r"""

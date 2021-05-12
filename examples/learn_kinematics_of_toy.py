@@ -52,9 +52,19 @@ def run(n_epochs=3000, n_data=100, device="cpu"):
             q=q, link_name="endEffector"
         )
         loss = loss_fn(ee_pos_pred, gt_ee_pos)
-        if i % 100 == 0:
+        if i % 10 == 0:
             print(f"i: {i}, loss: {loss}")
             learnable_robot_model.print_learnable_params()
+
+        if i == 10:
+            learnable_robot_model.freeze_learnable_link_param(
+                link_name="arm1", parameter_name="trans"
+            )
+
+        if i == 100:
+            learnable_robot_model.unfreeze_learnable_link_param(
+                link_name="arm1", parameter_name="trans"
+            )
         loss.backward()
         optimizer.step()
 
