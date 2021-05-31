@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  install-and-test:
+  install-and-test-linux:
     working_directory: ~/differentiable-robot-model
     resource_class: gpu.nvidia.medium
     machine:
@@ -36,6 +36,42 @@ jobs:
             conda activate ~/testenv
             pip install -e .
             pytest
+            
+  install-and-test-osx:
+    working_directory: ~/differentiable-robot-model
+    macos:
+      xcode: 12.5.0
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: Install conda
+          command: |
+            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh --output miniconda.sh
+            bash miniconda.sh -b -u -p $HOME/miniconda3
+            ~/miniconda3/bin/conda init bash
+      - run:
+          name: Setup env
+          command: |
+            source ~/.bashrc
+            [ -d ~/testenv ] || conda create -p ~/testenv python=3.8 -y
+            conda activate ~/testenv
+            pip install -r requirements.txt
+            pip install -r tests/requirements.txt
+      - save_cache:
+          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          paths:
+            - "~/testenv"
+            - "~/miniconda3"
+      - run:
+          name: Run tests
+          command: |
+            source ~/.bashrc
+            conda activate ~/testenv
+            pip install -e .
+            pytest
+
 
   formatting:
     working_directory: ~/differentiable-robot-model
@@ -53,5 +89,6 @@ jobs:
 workflows:
   main:
     jobs:
-      - install-and-test
+      - install-and-test-linux
+      - install-and-test-osx
       - formatting

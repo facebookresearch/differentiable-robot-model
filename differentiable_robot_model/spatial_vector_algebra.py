@@ -6,7 +6,6 @@ TODO
 from __future__ import annotations
 from typing import Optional
 import torch
-import hydra
 import math
 from . import utils
 from .utils import cross_product
@@ -317,13 +316,15 @@ class SpatialForceVec(object):
 class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
     def __init__(self, rigid_body_params, device="cpu"):
         super().__init__()
-        self.mass = rigid_body_params["mass"]
-        self.com = rigid_body_params["com"]
-        self.inertia_mat = rigid_body_params["inertia_mat"]
+        # lambda functions are a "hack" to make this compatible with the learnable variants
+        self.mass = lambda: rigid_body_params["mass"]
+        self.com = lambda: rigid_body_params["com"]
+        self.inertia_mat = lambda: rigid_body_params["inertia_mat"]
+
         self._device = torch.device(device)
 
     def _get_parameter_values(self):
-        return self.mass, self.com, self.inertia_mat
+        return self.mass(), self.com(), self.inertia_mat()
 
     def multiply_motion_vec(self, smv):
         mass, com, inertia_mat = self._get_parameter_values()
@@ -377,33 +378,3 @@ class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
         mat[4, 4] = mass
         mat[5, 5] = mass
         return mat
-
-
-class LearnableSpatialRigidBodyInertia(DifferentiableSpatialRigidBodyInertia):
-    def __init__(self, learnable_rigid_body_config, rigid_body_params, device="cpu"):
-        super().__init__(rigid_body_params, device=device)
-
-        # we overwrite dynamics parameters
-        if "mass" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.mass_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.mass_parametrization
-            ).to(device)
-        else:
-            self.mass_fn = lambda: self.mass
-
-        if "com" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.com_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.com_parametrization
-            ).to(device)
-        else:
-            self.com_fn = lambda: self.com
-
-        if "inertia_mat" in learnable_rigid_body_config.learnable_dynamics_params:
-            self.inertia_mat_fn = hydra.utils.instantiate(
-                learnable_rigid_body_config.inertia_parametrization
-            ).to(device)
-        else:
-            self.inertia_mat_fn = lambda: self.inertia_mat
-
-    def _get_parameter_values(self):
-        return self.mass_fn(), self.com_fn(), self.inertia_mat_fn()

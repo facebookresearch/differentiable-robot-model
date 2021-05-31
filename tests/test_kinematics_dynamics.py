@@ -9,9 +9,8 @@ import pytest
 
 import pybullet as p
 import diff_robot_data
-from differentiable_robot_model.differentiable_robot_model import (
+from differentiable_robot_model.robot_model import (
     DifferentiableRobotModel,
-    LearnableRigidBodyConfig,
 )
 
 torch.set_default_tensor_type(torch.FloatTensor)
@@ -106,7 +105,7 @@ def sim(test_info):
 # Setup differentiable robot model
 @pytest.fixture
 def robot_model(test_info):
-    return DifferentiableRobotModel(test_info.urdf_path, LearnableRigidBodyConfig())
+    return DifferentiableRobotModel(test_info.urdf_path)
 
 
 # Setup test
