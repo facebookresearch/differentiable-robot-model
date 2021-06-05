@@ -5,7 +5,7 @@ Differentiable robot model class
 TODO
 """
 
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Set
 import os
 
 import torch
@@ -52,7 +52,9 @@ class DifferentiableRobotModel(torch.nn.Module):
     TODO
     """
 
-    def __init__(self, urdf_path: str, name="", device=None):
+    def __init__(
+        self, urdf_path: str, name="", links_blacklist: Set[str] = None, device=None
+    ):
 
         super().__init__()
 
@@ -62,7 +64,9 @@ class DifferentiableRobotModel(torch.nn.Module):
             torch.device(device) if device is not None else torch.device("cpu")
         )
 
-        self._urdf_model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
+        self._urdf_model = URDFRobotModel(
+            urdf_path=urdf_path, links_blacklist=links_blacklist, device=self._device
+        )
         self._bodies = torch.nn.ModuleList()
         self._n_dofs = 0
         self._controlled_joints = []
@@ -72,7 +76,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         # joint is at the beginning of a link
         self._name_to_idx_map = dict()
 
-        for (i, link) in enumerate(self._urdf_model.robot.links):
+        for (i, link) in enumerate(self._urdf_model.links):
 
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
 
