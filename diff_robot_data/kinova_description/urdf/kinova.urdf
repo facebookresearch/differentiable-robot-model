@@ -48,13 +48,6 @@
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
   <!-- ros_control plugin -->
-  <gazebo>
-    <plugin filename="libgazebo_ros_control.so" name="gazebo_ros_control">
-      <robotNamespace>j2n6s300</robotNamespace>
-      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
-      <legacyModeNS>true</legacyModeNS>
-    </plugin>
-  </gazebo>
   <link name="j2n6s300_link_base">
     <visual>
       <geometry>
