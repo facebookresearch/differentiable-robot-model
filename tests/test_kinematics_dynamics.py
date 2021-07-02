@@ -17,6 +17,8 @@ torch.set_default_tensor_type(torch.FloatTensor)
 
 # (rel_urdf_path, test_link_list)
 test_data = [
+    # Fetch arm
+    ("fetch_description/urdf/fetch_arm_no_gripper.urdf", [(7, "virtual_ee_link")]),
     # Toy
     ("2link_robot.urdf", [(2, "endEffector")]),
     # Kuka iiwa

@@ -18,7 +18,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0.4" />
       <geometry>
-        <!--<mesh filename="../meshes/base_link_collision.STL" />-->
+        <!--<mesh filename="../meshes/base_link_collision.stl" />-->
         <cylinder length="0.8" radius="0.3"/>
       </geometry>
     </collision>
@@ -227,92 +227,9 @@
     <limit effort="7.36" velocity="2.268" />
     <dynamics damping="5.0" />
   </joint>
-  <link name="gripper_link">
-    <inertial>
-      <origin rpy="0 0 0" xyz="-0.0900 -0.0001 -0.0017" />
-      <mass value="1.5175" />
-      <inertia ixx="0.0013" ixy="-0.0" ixz="0.0" iyy="0.0019" iyz="-0.0" izz="0.0024" />
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0" />
-      <geometry>
-        <mesh filename="../meshes/gripper_link.dae" />
-      </geometry>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0" />
-      <geometry>
-        <mesh filename="../meshes/gripper_link.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="gripper_axis" type="fixed">
-    <origin rpy="0 0 0" xyz="0.16645 0 0" />
-    <parent link="wrist_roll_link" />
-    <child link="gripper_link" />
-    <axis xyz="0 1 0" />
-  </joint>
-  <link name="r_gripper_finger_link">
-    <inertial>
-      <origin rpy="0 0 0" xyz="-0.01 0 0" />
-      <mass value="0.0798" />
-      <inertia ixx="0.002" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0.101425 0" />
-      <geometry>
-        <mesh filename="../meshes/r_gripper_finger_link.STL" />
-      </geometry>
-      <material name="13">
-        <color rgba="0.356 0.361 0.376 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0.101425 0" />
-      <geometry>
-        <mesh filename="../meshes/r_gripper_finger_link.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="r_gripper_finger_joint" type="prismatic">
-    <origin rpy="0 0 0" xyz="0 0.015425 0" />
-    <parent link="gripper_link" />
-    <child link="r_gripper_finger_link" />
-    <axis xyz="0 1 0" />
-  <limit effort="60" lower="0.0" upper="0.05" velocity="0.05" /><dynamics damping="100.0" /></joint>
-  <link name="l_gripper_finger_link">
-    <inertial>
-      <origin rpy="0 0 0" xyz="-0.01 0 0" />
-      <mass value="0.0798" />
-      <inertia ixx="0.002" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 -0.101425 0" />
-      <geometry>
-        <mesh filename="../meshes/l_gripper_finger_link.STL" />
-      </geometry>
-      <material name="14">
-        <color rgba="0.356 0.361 0.376 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 -0.101425 0" />
-      <geometry>
-        <mesh filename="../meshes/l_gripper_finger_link.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="l_gripper_finger_joint" type="prismatic">
-    <origin rpy="0 0 0" xyz="0 -0.015425 0" />
-    <parent link="gripper_link" />
-    <child link="l_gripper_finger_link" />
-    <axis xyz="0 -1 0" />
-    <limit effort="60" lower="0.0" upper="0.05" velocity="0.05" />
-    <dynamics damping="100.0" />
-  </joint>
   <!-- ee_link: virtual -->
   <joint name="virtual_ee_joint" type="fixed">
-    <parent link="gripper_link"/>
+    <parent link="wrist_roll_link"/>
     <child link="virtual_ee_link"/>
     <origin rpy="0 0 0" xyz="0 0 0.045"/>
   </joint>
