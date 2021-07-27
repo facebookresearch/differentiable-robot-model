@@ -11,18 +11,15 @@ Currently, our code should work with any kinematic trees. This package comes wit
 * Kuka iiwa
 * Franka Panda
 * Allegro Hand
+* Fetch Arm
 * a 2-link toy robot
 
-You can find the documentation here:  [Differentiable-Robot-Model Documentation](https://fmeier.github.io/differentiable-robot-model/)  
+You can find the documentation here:  [Differentiable-Robot-Model Documentation](https://fmeier.github.io/differentiable-robot-model-docs/)  
 
 ## Installation
 Requirements: python>= 3.7  
-you can either pip install:
-```
-pip install differentiable-robot-model
-```
 
-or clone this repo and install from source:
+clone this repo and install from source:
 ```
 git clone git@github.com:facebookresearch/differentiable-robot-model.git
 cd differentiable-robot-model
@@ -62,10 +59,6 @@ in our L4DC paper
 ## Testing
 running `pytest` in the top-level folder will run our differentiable robot model tests, 
 which compare computations against pybullet.
-
-## Documentation
-It was created using Sphinx to automatically generate readable documentation from docstrings. Simply call `make html` inside `./docs` to regenerate docs.
-
 
 ## Code Contribution
 
