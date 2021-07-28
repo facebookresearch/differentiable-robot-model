@@ -35,6 +35,8 @@ test_data = [
             (19, "link_15.0_tip"),
         ],
     ),
+    # Kinova
+    ("kinova_description/urdf/kinova.urdf", [(8, "j2n6s300_end_effector")]),
 ]
 
 
