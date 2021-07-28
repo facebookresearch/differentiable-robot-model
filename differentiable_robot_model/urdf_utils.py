@@ -5,14 +5,16 @@ URDF Utils
 TODO
 """
 import os
+import warnings
 import torch
 from urdf_parser_py.urdf import URDF
 
 
 class URDFRobotModel(object):
-    def __init__(self, urdf_path, device="cpu"):
+    def __init__(self, urdf_path, links_blacklist=None, device="cpu"):
         self.robot = URDF.from_xml_file(urdf_path)
         self._device = torch.device(device)
+        self.links_blacklist = links_blacklist if links_blacklist is not None else set()
 
     def find_joint_of_body(self, body_name):
         for (i, joint) in enumerate(self.robot.joints):
@@ -116,5 +118,20 @@ class URDFRobotModel(object):
             body_params["com"] = None
             body_params["inertia_mat"] = None
             print("no dynamics information for link: {}".format(link.name))
+            if i > 0:  # dynamics information for root link (idx 0) is not necessary
+                # notify to users about adding link without dynamic information (e.g.
+                # coordinate frame) to blacklist
+                warnings.warn(
+                    f"Intermediate link {i} '{link.name}' contains no dynamic " 
+                    f"information. Consider adding it to `links_blacklist` if this"
+                    f"is a dummy link to remove it from kinematic chain."
+                )
 
         return body_params
+
+    @property
+    def links(self):
+        # return links in the URDF file that are not blacklisted
+        return filter(
+            lambda link: link.name not in self.links_blacklist, self.robot.links
+        )
