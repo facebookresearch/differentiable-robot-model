@@ -34,7 +34,7 @@ test_data = [
         ],
     ),
     # Kinova
-    ("kinova_description/urdf/kinova.urdf", [(8, "j2n6s300_end_effector")]),
+    ("kinova_description/urdf/jaco.urdf", [(8, "j2n6s300_end_effector")]),
 ]
 
 
