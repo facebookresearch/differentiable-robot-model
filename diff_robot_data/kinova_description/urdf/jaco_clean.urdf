@@ -40,13 +40,6 @@
    finger_distal      58
 -->
   <link name="root"/>
-  <!-- for gazebo -->
-  <link name="world"/>
-  <joint name="connect_root_and_world" type="fixed">
-    <child link="root"/>
-    <parent link="world"/>
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-  </joint>
   <!-- ros_control plugin -->
   <link name="j2n6s300_link_base">
     <visual>
@@ -257,6 +250,19 @@
     <axis xyz="0 0 0"/>
     <limit effort="2000" lower="0" upper="0" velocity="1"/>
     <origin rpy="3.14159265359 0 1.57079632679" xyz="0 0 -0.1600"/>
+  </joint>
+  <!-- ee_link: virtual -->
+  <link name="j2n6s300_link_ee">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+  </link>
+  <joint name="j2n6s300_joint_ee" type="fixed">
+    <parent link="j2n6s300_end_effector"/>
+    <child link="j2n6s300_link_ee"/>
+    <origin rpy="0 0 0" xyz="0 0 0.045"/>
   </joint>
   <link name="j2n6s300_link_finger_1">
     <visual>
