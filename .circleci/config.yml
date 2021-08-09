@@ -9,7 +9,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: deps-linux-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           name: Install conda
           command: |
@@ -25,7 +25,7 @@ jobs:
             pip install -r requirements.txt
             pip install -r tests/requirements.txt
       - save_cache:
-          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: deps-linux-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
             - "~/testenv"
             - "~/miniconda3"
@@ -44,7 +44,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: deps-osx-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           name: Install conda
           command: |
@@ -60,7 +60,7 @@ jobs:
             pip install -r requirements.txt
             pip install -r tests/requirements.txt
       - save_cache:
-          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: deps-osx-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
             - "~/testenv"
             - "~/miniconda3"
