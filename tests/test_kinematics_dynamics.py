@@ -34,7 +34,7 @@ test_data = [
         ],
     ),
     # Kinova
-    ("kinova_description/urdf/jaco.urdf", [(8, "j2n6s300_end_effector")]),
+    ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
 ]
 
 
@@ -315,7 +315,7 @@ class TestRobotModel:
         assert np.allclose(
             model_torques.detach().squeeze().numpy(),
             np.asarray(bullet_torques),
-            atol=1e-7,
+            atol=1e-5,
         )
 
     def test_mass_computation(self, request, setup_dict):
@@ -413,10 +413,10 @@ class TestRobotModel:
 
         # Compare (Dynamics scales differ a lot between different robots so rtol is used)
         model_qdd = np.asarray(model_qdd.detach().squeeze())
-        assert np.allclose(model_qdd, qdd, rtol=5e-3)
+        assert np.allclose(model_qdd, qdd, atol=1e-3)
 
         if not use_damping:
             # we can only test this if joint damping is zero,
             # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
             # "inverse" of each other
-            assert np.allclose(model_qdd, np.asarray(test_case.joint_acc), rtol=5e-3)
+            assert np.allclose(model_qdd, np.asarray(test_case.joint_acc), atol=1e-3)
