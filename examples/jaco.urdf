@@ -40,13 +40,6 @@
    finger_distal      58
 -->
   <link name="root"/>
-  <!-- for gazebo -->
-  <link name="world"/>
-  <joint name="connect_root_and_world" type="fixed">
-    <child link="root"/>
-    <parent link="world"/>
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-  </joint>
   <!-- ros_control plugin -->
   <link name="j2n6s300_link_base">
     <visual>
