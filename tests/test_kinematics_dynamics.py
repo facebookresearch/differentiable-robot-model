@@ -271,10 +271,14 @@ class TestRobotModel:
 
             # Compare
             assert np.allclose(
-                model_jac_lin.detach().numpy(), np.asarray(bullet_jac_lin), atol=1e-7
+                model_jac_lin.detach().squeeze().numpy(),
+                np.asarray(bullet_jac_lin),
+                atol=1e-7,
             )
             assert np.allclose(
-                model_jac_ang.detach().numpy(), np.asarray(bullet_jac_ang), atol=1e-7
+                model_jac_ang.detach().squeeze().numpy(),
+                np.asarray(bullet_jac_ang),
+                atol=1e-7,
             )
 
     @pytest.mark.parametrize("use_damping", [True, False])

@@ -551,14 +551,16 @@ class DifferentiableRobotModel(torch.nn.Module):
         Returns: linear and angular jacobian
 
         """
+        assert len(q.shape) == 2
+        batch_size = q.shape[0]
         self.compute_forward_kinematics(q, link_name)
 
         e_pose = self._bodies[self._name_to_idx_map[link_name]].pose
-        p_e = e_pose.translation()[0]
+        p_e = e_pose.translation()
 
         lin_jac, ang_jac = (
-            torch.zeros([3, self._n_dofs], device=self._device),
-            torch.zeros([3, self._n_dofs], device=self._device),
+            torch.zeros([batch_size, 3, self._n_dofs], device=self._device),
+            torch.zeros([batch_size, 3, self._n_dofs], device=self._device),
         )
 
         joint_id = (
@@ -571,10 +573,10 @@ class DifferentiableRobotModel(torch.nn.Module):
 
                 pose = self._bodies[idx].pose
                 axis = self._bodies[idx].joint_axis
-                p_i = pose.translation()[0]
-                z_i = pose.rotation()[0, :, :] @ axis.squeeze()
-                lin_jac[:, i] = torch.cross(z_i, p_e - p_i)
-                ang_jac[:, i] = z_i
+                p_i = pose.translation()
+                z_i = pose.rotation() @ axis.squeeze()
+                lin_jac[:, :, i] = torch.cross(z_i, p_e - p_i, dim=-1)
+                ang_jac[:, :, i] = z_i
 
             link_name = self._urdf_model.get_name_of_parent_body(link_name)
             joint_id = self._urdf_model.find_joint_of_body(link_name) + 1
