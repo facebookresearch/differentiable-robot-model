@@ -230,7 +230,7 @@ class TestRobotModel:
 
             # Differentiable model
             model_ee_state = robot_model.compute_forward_kinematics(
-                torch.Tensor(test_case.joint_pos).reshape(1, num_dofs), ee_link_name
+                torch.Tensor(test_case.joint_pos), ee_link_name
             )
 
             # Compare
@@ -266,17 +266,17 @@ class TestRobotModel:
 
             # Differentiable model
             model_jac_lin, model_jac_ang = robot_model.compute_endeffector_jacobian(
-                torch.Tensor(test_case.joint_pos).reshape(1, num_dofs), ee_link_name
+                torch.Tensor(test_case.joint_pos), ee_link_name
             )
 
             # Compare
             assert np.allclose(
-                model_jac_lin.detach().squeeze().numpy(),
+                model_jac_lin.detach().numpy(),
                 np.asarray(bullet_jac_lin),
                 atol=1e-7,
             )
             assert np.allclose(
-                model_jac_ang.detach().squeeze().numpy(),
+                model_jac_ang.detach().numpy(),
                 np.asarray(bullet_jac_ang),
                 atol=1e-7,
             )
@@ -299,9 +299,9 @@ class TestRobotModel:
 
         # Differentiable model
         model_torques = robot_model.compute_inverse_dynamics(
-            torch.Tensor(test_case.joint_pos).reshape(1, num_dofs),
-            torch.Tensor(test_case.joint_vel).reshape(1, num_dofs),
-            torch.Tensor(test_case.joint_acc).reshape(1, num_dofs),
+            torch.Tensor(test_case.joint_pos),
+            torch.Tensor(test_case.joint_vel),
+            torch.Tensor(test_case.joint_acc),
             include_gravity=True,
             use_damping=use_damping,
         )
@@ -309,17 +309,17 @@ class TestRobotModel:
         if use_damping:
             # if we have non-zero joint damping, we'll have to subtract the damping term from our predicted torques,
             # because pybullet does not include damping/viscous friction in their inverse dynamics call
-            damping_const = torch.zeros(1, num_dofs)
-            qd = torch.Tensor(test_case.joint_vel).reshape(1, num_dofs)
+            damping_const = torch.zeros(num_dofs)
+            qd = torch.Tensor(test_case.joint_vel)
             for i in range(robot_model._n_dofs):
                 idx = robot_model._controlled_joints[i]
-                damping_const[:, i] = robot_model._bodies[idx].get_joint_damping_const()
-            damping_term = damping_const.repeat(1, 1) * qd
+                damping_const[i] = robot_model._bodies[idx].get_joint_damping_const()
+            damping_term = damping_const * qd
             model_torques -= damping_term
 
         # Compare
         assert np.allclose(
-            model_torques.detach().squeeze().numpy(),
+            model_torques.detach().numpy(),
             np.asarray(bullet_torques),
             atol=1e-5,
         )
@@ -339,13 +339,11 @@ class TestRobotModel:
 
         # Differentiable model
         inertia_mat = robot_model.compute_lagrangian_inertia_matrix(
-            torch.Tensor(test_case.joint_pos).reshape(1, num_dofs)
+            torch.Tensor(test_case.joint_pos)
         )
 
         # Compare
-        assert np.allclose(
-            inertia_mat.detach().squeeze().numpy(), bullet_mass, atol=1e-5
-        )
+        assert np.allclose(inertia_mat.detach().numpy(), bullet_mass, atol=1e-5)
 
     @pytest.mark.parametrize("use_damping", [True, False])
     def test_forward_dynamics(self, request, setup_dict, use_damping):
@@ -410,15 +408,15 @@ class TestRobotModel:
 
         # Differentiable model
         model_qdd = robot_model.compute_forward_dynamics(
-            torch.Tensor(test_case.joint_pos).reshape(1, num_dofs),
-            torch.Tensor(test_case.joint_vel).reshape(1, num_dofs),
-            torch.Tensor(bullet_tau).reshape(1, num_dofs),
+            torch.Tensor(test_case.joint_pos),
+            torch.Tensor(test_case.joint_vel),
+            torch.Tensor(bullet_tau),
             include_gravity=True,
             use_damping=use_damping,
         )
 
         # Compare (Dynamics scales differ a lot between different robots so rtol is used)
-        model_qdd = np.asarray(model_qdd.detach().squeeze())
+        model_qdd = np.asarray(model_qdd.detach())
         assert np.allclose(model_qdd, qdd, atol=1e-3)
 
         if not use_damping:
