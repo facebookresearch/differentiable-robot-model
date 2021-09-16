@@ -39,6 +39,11 @@ test_data = [
     ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
 ]
 
+batch_shapes = [
+    tuple(),
+    (1,),
+    (3,),
+]
 
 ################
 # Dataclasses
@@ -83,6 +88,11 @@ def test_info(request):
     )
 
 
+@pytest.fixture(params=batch_shapes)
+def batch_shape(request):
+    return request.param
+
+
 # Setup pybullet
 @pytest.fixture
 def sim(test_info):
@@ -113,8 +123,8 @@ def robot_model(test_info):
 
 
 # Setup test
-@pytest.fixture
-def setup_dict(request, test_info, sim, robot_model):
+@pytest.fixture()
+def setup_dict(request, test_info, sim, robot_model):  # TODO: add batch shape
     # Get num dofs
     num_dofs = len(robot_model.get_joint_limits())
 
@@ -135,53 +145,40 @@ def setup_dict(request, test_info, sim, robot_model):
 
     # Set all seeds to ensure reproducibility
     random.seed(0)
-    np.random.seed(1)
+    np.random.seed(0)
     torch.manual_seed(0)
 
     # Sample test cases
     limits_per_joint = robot_model.get_joint_limits()
-    joint_lower_bounds = [joint["lower"] for joint in limits_per_joint]
-    joint_upper_bounds = [joint["upper"] for joint in limits_per_joint]
-    joint_velocity_limits = [0.01 * joint["velocity"] for joint in limits_per_joint]
+    joint_lower_bounds = np.asarray([joint["lower"] for joint in limits_per_joint])
+    joint_upper_bounds = np.asarray([joint["upper"] for joint in limits_per_joint])
+    joint_velocity_limits = np.asarray(
+        [0.001 * joint["velocity"] for joint in limits_per_joint]
+    )
     # NOTE: sample low velocities since PyBullet inhibits unknown clipping for large damping forces
     #       (encountered with the allegro hand urdf)
-    joint_angles = []
-    joint_velocities = []
-    joint_accelerations = []
 
-    for i in range(len(limits_per_joint)):
-        joint_angles.append(
-            np.random.uniform(low=joint_lower_bounds[i], high=joint_upper_bounds[i])
+    joint_angles = np.random.uniform(
+        low=joint_lower_bounds, high=joint_upper_bounds, size=num_dofs
+    )
+    joint_velocities = np.random.uniform(
+        low=-joint_velocity_limits, high=joint_velocity_limits, size=num_dofs
+    )
+    if test_info.zero_acc:
+        joint_accelerations = np.zeros(num_dofs)
+    else:
+        joint_accelerations = 10.0 * np.random.uniform(
+            low=-joint_velocity_limits, high=joint_velocity_limits, size=num_dofs
         )
-
-        if test_info.zero_vel:
-            joint_velocities.append(0.0)
-
-        else:
-            joint_velocities.append(
-                np.random.uniform(
-                    low=-joint_velocity_limits[i], high=joint_velocity_limits[i]
-                )
-            )
-
-        if test_info.zero_acc:
-            joint_accelerations.append(0.0)
-        else:
-            joint_accelerations.append(
-                np.random.uniform(
-                    low=-joint_velocity_limits[i] * 2.0,
-                    high=joint_velocity_limits[i] * 2.0,
-                )
-            )
 
     return {
         "robot_model": robot_model,
         "sim": sim,
         "num_dofs": num_dofs,
         "test_case": SampledTestCase(
-            joint_pos=joint_angles,
-            joint_vel=joint_velocities,
-            joint_acc=joint_accelerations,
+            joint_pos=joint_angles.tolist(),
+            joint_vel=joint_velocities.tolist(),
+            joint_acc=joint_accelerations.tolist(),
         ),
     }
 
@@ -343,7 +340,7 @@ class TestRobotModel:
         )
 
         # Compare
-        assert np.allclose(inertia_mat.detach().numpy(), bullet_mass, atol=1e-5)
+        assert np.allclose(inertia_mat.detach().numpy(), bullet_mass, atol=1e-4)
 
     @pytest.mark.parametrize("use_damping", [True, False])
     def test_forward_dynamics(self, request, setup_dict, use_damping):
@@ -417,10 +414,12 @@ class TestRobotModel:
 
         # Compare (Dynamics scales differ a lot between different robots so rtol is used)
         model_qdd = np.asarray(model_qdd.detach())
-        assert np.allclose(model_qdd, qdd, atol=1e-3)
+        assert np.allclose(model_qdd, qdd, rtol=1e-1, atol=1e-4)
 
         if not use_damping:
             # we can only test this if joint damping is zero,
             # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
             # "inverse" of each other
-            assert np.allclose(model_qdd, np.asarray(test_case.joint_acc), atol=1e-3)
+            assert np.allclose(
+                model_qdd, np.asarray(test_case.joint_acc), rtol=1e-1, atol=1e-4
+            )
