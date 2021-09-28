@@ -48,8 +48,6 @@ def tensor_check(function):
 class DifferentiableRobotModel(torch.nn.Module):
     """
     Differentiable Robot Model
-    ====================================
-    TODO
     """
 
     def __init__(self, urdf_path: str, name="", device=None):
@@ -91,15 +89,11 @@ class DifferentiableRobotModel(torch.nn.Module):
 
     @tensor_check
     def update_kinematic_state(self, q: torch.Tensor, qd: torch.Tensor) -> None:
-        r"""
+        """Updates the kinematic state of the robot
 
-        Updates the kinematic state of the robot
         Args:
             q: joint angles [batch_size x n_dofs]
             qd: joint velocities [batch_size x n_dofs]
-
-        Returns:
-
         """
         assert q.ndim == 2
         assert qd.ndim == 2
@@ -150,8 +144,7 @@ class DifferentiableRobotModel(torch.nn.Module):
     def compute_forward_kinematics(
         self, q: torch.Tensor, link_name: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        r"""
-
+        """Forward kinematics: computes link pose from joint angles
         Args:
             q: joint angles [batch_size x n_dofs]
             link_name: name of link
@@ -170,7 +163,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
     @tensor_check
     def iterative_newton_euler(self, base_acc: SpatialMotionVec) -> None:
-        r"""
+        """Iterative Newton Euler Algorithm.
 
         Args:
             base_acc: spatial acceleration of base (for fixed manipulators this is zero)
@@ -232,13 +225,14 @@ class DifferentiableRobotModel(torch.nn.Module):
         include_gravity: Optional[bool] = True,
         use_damping: Optional[bool] = True,
     ) -> torch.Tensor:
-        r"""
+        """Inverse dynamics: computes forces to achieve desired accelerations at a specified robot state
 
         Args:
             q: joint angles [batch_size x n_dofs]
             qd: joint velocities [batch_size x n_dofs]
             qdd_des: desired joint accelerations [batch_size x n_dofs]
             include_gravity: when False, we assume gravity compensation is already taken care off
+            use_damping: when False, ignore joint damping effects
 
         Returns: forces to achieve desired accelerations
 
@@ -303,16 +297,17 @@ class DifferentiableRobotModel(torch.nn.Module):
         include_gravity: Optional[bool] = True,
         use_damping: Optional[bool] = True,
     ) -> torch.Tensor:
-        r"""
-
+        """
         Compute the non-linear effects (Coriolis, centrifugal, gravitational, and damping effects).
+        Equivalent to calling compute_inverse_dynamics with zero desired acceleration.
 
         Args:
             q: joint angles [batch_size x n_dofs]
             qd: [batch_size x n_dofs]
             include_gravity: set to False if your robot has gravity compensation
+            use_damping: when False, ignore joint damping effects
 
-        Returns:
+        Returns: forces to counteract nonlinear effects
 
         """
         zero_qdd = q.new_zeros(q.shape)
@@ -327,13 +322,14 @@ class DifferentiableRobotModel(torch.nn.Module):
         include_gravity: Optional[bool] = True,
         use_damping: Optional[bool] = True,
     ) -> torch.Tensor:
-        r"""
+        """Computes the inertia matrix for the Euler-Lagrange equation
 
         Args:
             q: joint angles [batch_size x n_dofs]
             include_gravity: set to False if your robot has gravity compensation
+            use_damping: when False, ignore joint damping effects
 
-        Returns:
+        Returns: Inertia matrix
 
         """
         assert q.shape[1] == self._n_dofs
@@ -379,7 +375,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         include_gravity: Optional[bool] = True,
         use_damping: Optional[bool] = True,
     ) -> torch.Tensor:
-        r"""
+        """
         Computes next qdd by solving the Euler-Lagrange equation
         qdd = H^{-1} (F - Cv - G - damping_term)
 
@@ -388,6 +384,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             qd: joint velocities [batch_size x n_dofs]
             f: forces to be applied [batch_size x n_dofs]
             include_gravity: set to False if your robot has gravity compensation
+            use_damping: when False, ignore joint damping effects
 
         Returns: accelerations that are the result of applying forces f in state q, qd
 
@@ -414,14 +411,14 @@ class DifferentiableRobotModel(torch.nn.Module):
         include_gravity: Optional[bool] = True,
         use_damping: Optional[bool] = False,
     ) -> torch.Tensor:
-        r"""
-        Computes next qdd via the articulated body algorithm (see Featherstones Rigid body dynamics page 132)
+        """Forward dynamics: computes next qdd via the articulated body algorithm (see Featherstones Rigid body dynamics page 132)
 
         Args:
             q: joint angles [batch_size x n_dofs]
             qd: joint velocities [batch_size x n_dofs]
             f: forces to be applied [batch_size x n_dofs]
             include_gravity: set to False if your robot has gravity compensation
+            use_damping: when False, ignore joint damping effects
 
         Returns: accelerations that are the result of applying forces f in state q, qd
 
@@ -542,7 +539,7 @@ class DifferentiableRobotModel(torch.nn.Module):
     def compute_endeffector_jacobian(
         self, q: torch.Tensor, link_name: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        r"""
+        """Computes the Jacobian for a specified link
 
         Args:
             link_name: name of link name for the jacobian
@@ -627,7 +624,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             param.requires_grad = True
 
     def get_joint_limits(self) -> List[Dict[str, torch.Tensor]]:
-        r"""
+        """
 
         Returns: list of joint limit dict, containing joint position, velocity and effort limits
 
@@ -638,7 +635,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return limits
 
     def get_link_names(self) -> List[str]:
-        r"""
+        """
 
         Returns: a list containing names for all links
 
@@ -650,7 +647,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return link_names
 
     def print_link_names(self) -> None:
-        r"""
+        """
 
         print the names of all links
 
@@ -659,7 +656,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             print(self._bodies[i].name)
 
     def print_learnable_params(self) -> None:
-        r"""
+        """
 
         print the name and value of all learnable parameters
 
