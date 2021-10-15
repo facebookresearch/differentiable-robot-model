@@ -25,18 +25,18 @@ test_data = [
     ("kuka_iiwa/urdf/iiwa7.urdf", [(7, "iiwa_link_ee")]),
     # Franka_panda
     ("panda_description/urdf/panda_no_gripper.urdf", [(7, "panda_virtual_ee_link")]),
-    # # Allegro hand
-    # (
-    #     "allegro/urdf/allegro_hand_description_left.urdf",
-    #     [
-    #         (4, "link_11.0_tip"),
-    #         (9, "link_7.0_tip"),
-    #         (14, "link_3.0_tip"),
-    #         (19, "link_15.0_tip"),
-    #     ],
-    # ),
-    # # Kinova
-    # ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
+    # Allegro hand
+    (
+        "allegro/urdf/allegro_hand_description_left.urdf",
+        [
+            (4, "link_11.0_tip"),
+            (9, "link_7.0_tip"),
+            (14, "link_3.0_tip"),
+            (19, "link_15.0_tip"),
+        ],
+    ),
+    # Kinova
+    ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
 ]
 
 batch_shapes = [
@@ -387,8 +387,10 @@ class TestRobotModel:
             torch.Tensor(test_case.joint_pos)
         )
 
-        # Compare
-        assert np.allclose(inertia_mat.detach().numpy(), bullet_mass, atol=1e-4)
+        # Compare (Dynamics scales differ a lot between different robots so rtol is used)
+        assert np.allclose(
+            inertia_mat.detach().numpy(), bullet_mass, rtol=1e-3, atol=1e-5
+        )
 
     @pytest.mark.parametrize("use_damping", [True, False])
     def test_forward_dynamics(self, request, setup_dict, use_damping):
@@ -475,12 +477,12 @@ class TestRobotModel:
 
         # Compare (Dynamics scales differ a lot between different robots so rtol is used)
         model_qdd = np.asarray(model_qdd.detach())
-        assert np.allclose(model_qdd, qdd, rtol=1e-1, atol=1e-4)
+        assert np.allclose(model_qdd, qdd, rtol=1e-2, atol=1e-4)
 
         if not use_damping:
             # we can only test this if joint damping is zero,
             # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
             # "inverse" of each other
             assert np.allclose(
-                model_qdd, np.asarray(test_case.joint_acc), rtol=1e-1, atol=1e-4
+                model_qdd, np.asarray(test_case.joint_acc), rtol=1e-2, atol=1e-4
             )
