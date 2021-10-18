@@ -145,7 +145,7 @@ def setup_dict(request, test_info, sim, robot_model, batch_shape):
 
     # Set all seeds to ensure reproducibility
     random.seed(0)
-    np.random.seed(1)
+    np.random.seed(0)
     torch.manual_seed(0)
 
     # Sample test cases
@@ -153,7 +153,7 @@ def setup_dict(request, test_info, sim, robot_model, batch_shape):
     joint_lower_bounds = np.asarray([joint["lower"] for joint in limits_per_joint])
     joint_upper_bounds = np.asarray([joint["upper"] for joint in limits_per_joint])
     joint_velocity_limits = np.asarray(
-        [0.001 * joint["velocity"] for joint in limits_per_joint]
+        [0.0001 * joint["velocity"] for joint in limits_per_joint]
     )
     # NOTE: sample low velocities since PyBullet inhibits unknown clipping for large damping forces
     #       (encountered with the allegro hand urdf)
