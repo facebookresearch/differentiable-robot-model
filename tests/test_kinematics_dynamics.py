@@ -145,7 +145,7 @@ def setup_dict(request, test_info, sim, robot_model, batch_shape):
 
     # Set all seeds to ensure reproducibility
     random.seed(0)
-    np.random.seed(0)
+    np.random.seed(1)
     torch.manual_seed(0)
 
     # Sample test cases
