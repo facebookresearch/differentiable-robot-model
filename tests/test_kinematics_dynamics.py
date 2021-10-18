@@ -249,12 +249,12 @@ class TestRobotModel:
             assert np.allclose(
                 model_ee_pos.detach().numpy(),
                 np.asarray(bullet_ee_pos),
-                atol=1e-7,
+                atol=1e-6,
             )
             assert np.allclose(
                 model_ee_quat.detach().numpy(),
                 np.asarray(bullet_ee_quat),
-                atol=1e-7,
+                atol=1e-6,
             )
 
     def test_ee_jacobian(self, request, setup_dict, test_info):
@@ -298,12 +298,12 @@ class TestRobotModel:
             assert np.allclose(
                 model_jac_lin.detach().numpy(),
                 np.asarray(bullet_jac_lin),
-                atol=1e-7,
+                atol=1e-6,
             )
             assert np.allclose(
                 model_jac_ang.detach().numpy(),
                 np.asarray(bullet_jac_ang),
-                atol=1e-7,
+                atol=1e-6,
             )
 
     @pytest.mark.parametrize("use_damping", [True, False])
@@ -477,12 +477,12 @@ class TestRobotModel:
 
         # Compare (Dynamics scales differ a lot between different robots so rtol is used)
         model_qdd = np.asarray(model_qdd.detach())
-        assert np.allclose(model_qdd, qdd, rtol=1e-2, atol=1e-4)
+        assert np.allclose(model_qdd, qdd, rtol=1e-2, atol=1e-3)
 
         if not use_damping:
             # we can only test this if joint damping is zero,
             # if it is non-zero the pybullet forward dynamics and inverse dynamics call will not be exactly the
             # "inverse" of each other
             assert np.allclose(
-                model_qdd, np.asarray(test_case.joint_acc), rtol=1e-2, atol=1e-4
+                model_qdd, np.asarray(test_case.joint_acc), rtol=1e-2, atol=1e-3
             )
