@@ -401,16 +401,23 @@ class TestRobotModel:
         controlled_joints = [i - 1 for i in robot_model._controlled_joints]
 
         def get_bullet_fd(joint_pos, joint_vel, joint_acc):
-            if not use_damping:  # update joint damping
-                for link_idx in range(sim.num_joints):
-                    p.changeDynamics(
-                        sim.robot_id,
-                        link_idx,
-                        linearDamping=0.0,
-                        angularDamping=0.0,
-                        jointDamping=0.0,
-                        physicsClientId=sim.pc_id,
-                    )
+            # Update joint damping
+            for link_idx in range(sim.num_joints):
+                if use_damping:
+                    joint_damping = robot_model._bodies[
+                        link_idx + 1
+                    ].get_joint_damping_const()
+                else:
+                    joint_damping = 0.0
+
+                p.changeDynamics(
+                    sim.robot_id,
+                    link_idx,
+                    linearDamping=0.0,
+                    angularDamping=0.0,
+                    jointDamping=joint_damping,
+                    physicsClientId=sim.pc_id,
+                )
 
             p.setJointMotorControlArray(  # activating torque control
                 bodyIndex=sim.robot_id,
