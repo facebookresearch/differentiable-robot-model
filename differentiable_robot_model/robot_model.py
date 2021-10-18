@@ -410,7 +410,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return H
 
     @tensor_check
-    def compute_forward_dynamics_old(
+    def compute_forward_dynamics(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
@@ -445,7 +445,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return qdd
 
     @tensor_check
-    def compute_forward_dynamics(
+    def compute_forward_dynamics_inprogress(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
