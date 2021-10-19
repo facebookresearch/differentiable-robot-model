@@ -6,6 +6,7 @@ TODO
 """
 
 from typing import List, Tuple, Dict, Optional
+from dataclasses import dataclass
 import os
 
 import torch
@@ -26,21 +27,59 @@ def tensor_check(function):
     A decorator for checking the device of input tensors
     """
 
-    def check(arg, obj):
+    @dataclass
+    class BatchInfo:
+        shape: torch.Size = torch.Size([])
+        init: bool = False
+
+    def preprocess(arg, obj, batch_info):
         if type(arg) is torch.Tensor:
+            # Check device
             assert (
                 arg.device.type == obj._device.type
             ), f"Input argument of different device as module: {arg}"
 
+            # Check dimensions & convert to 2-dim tensors
+            assert arg.ndim in [1, 2], f"Input tensors must have ndim of 1 or 2."
+
+            if batch_info.init:
+                assert (
+                    batch_info.shape == arg.shape[:-1]
+                ), "Batch size mismatch between input tensors."
+            else:
+                batch_info.init = True
+                batch_info.shape = arg.shape[:-1]
+
+            if len(batch_info.shape) == 0:
+                return arg.unsqueeze(0)
+
+        return arg
+
+    def postprocess(arg, batch_info):
+        if type(arg) is torch.Tensor and batch_info.init and len(batch_info.shape) == 0:
+            return arg[0, ...]
+
+        return arg
+
     def wrapper(self, *args, **kwargs):
-        for arg in args:
-            check(arg, self)
+        batch_info = BatchInfo()
 
-        for key in kwargs.keys():
-            arg = kwargs[key]
-            check(arg, self)
+        # Parse input
+        processed_args = [preprocess(arg, self, batch_info) for arg in args]
+        processed_kwargs = {
+            key: preprocess(kwargs[key], self, batch_info) for key in kwargs
+        }
 
-        return function(self, *args, **kwargs)
+        # Perform function
+        ret = function(self, *processed_args, **processed_kwargs)
+
+        # Parse output
+        if type(ret) is torch.Tensor:
+            return postprocess(ret, batch_info)
+        elif type(ret) is tuple:
+            return tuple([postprocess(r, batch_info) for r in ret])
+        else:
+            return ret
 
     return wrapper
 
@@ -371,7 +410,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return H
 
     @tensor_check
-    def compute_forward_dynamics_old(
+    def compute_forward_dynamics(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
@@ -406,7 +445,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return qdd
 
     @tensor_check
-    def compute_forward_dynamics(
+    def compute_forward_dynamics_inprogress(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
@@ -551,14 +590,16 @@ class DifferentiableRobotModel(torch.nn.Module):
         Returns: linear and angular jacobian
 
         """
+        assert len(q.shape) == 2
+        batch_size = q.shape[0]
         self.compute_forward_kinematics(q, link_name)
 
         e_pose = self._bodies[self._name_to_idx_map[link_name]].pose
-        p_e = e_pose.translation()[0]
+        p_e = e_pose.translation()
 
         lin_jac, ang_jac = (
-            torch.zeros([3, self._n_dofs], device=self._device),
-            torch.zeros([3, self._n_dofs], device=self._device),
+            torch.zeros([batch_size, 3, self._n_dofs], device=self._device),
+            torch.zeros([batch_size, 3, self._n_dofs], device=self._device),
         )
 
         joint_id = (
@@ -571,10 +612,10 @@ class DifferentiableRobotModel(torch.nn.Module):
 
                 pose = self._bodies[idx].pose
                 axis = self._bodies[idx].joint_axis
-                p_i = pose.translation()[0]
-                z_i = pose.rotation()[0, :, :] @ axis.squeeze()
-                lin_jac[:, i] = torch.cross(z_i, p_e - p_i)
-                ang_jac[:, i] = z_i
+                p_i = pose.translation()
+                z_i = pose.rotation() @ axis.squeeze()
+                lin_jac[:, :, i] = torch.cross(z_i, p_e - p_i, dim=-1)
+                ang_jac[:, :, i] = z_i
 
             link_name = self._urdf_model.get_name_of_parent_body(link_name)
             joint_id = self._urdf_model.find_joint_of_body(link_name) + 1
