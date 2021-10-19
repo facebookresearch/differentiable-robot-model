@@ -18,7 +18,10 @@ torch.set_default_tensor_type(torch.FloatTensor)
 # (rel_urdf_path, test_link_list)
 test_data = [
     # Fetch arm
-    ("fetch_description/urdf/fetch_arm_no_gripper.urdf", [(7, "virtual_ee_link")]),
+    (
+        "fetch_description/urdf/fetch_arm_no_gripper_small_damping.urdf",
+        [(7, "virtual_ee_link")],
+    ),
     # Toy
     ("2link_robot.urdf", [(2, "endEffector")]),
     # Kuka iiwa
@@ -27,7 +30,7 @@ test_data = [
     ("panda_description/urdf/panda_no_gripper.urdf", [(7, "panda_virtual_ee_link")]),
     # Allegro hand
     (
-        "allegro/urdf/allegro_hand_description_left.urdf",
+        "allegro/urdf/allegro_hand_description_left_small_damping.urdf",
         [
             (4, "link_11.0_tip"),
             (9, "link_7.0_tip"),
@@ -153,7 +156,7 @@ def setup_dict(request, test_info, sim, robot_model, batch_shape):
     joint_lower_bounds = np.asarray([joint["lower"] for joint in limits_per_joint])
     joint_upper_bounds = np.asarray([joint["upper"] for joint in limits_per_joint])
     joint_velocity_limits = np.asarray(
-        [0.0001 * joint["velocity"] for joint in limits_per_joint]
+        [0.01 * joint["velocity"] for joint in limits_per_joint]
     )
     # NOTE: sample low velocities since PyBullet inhibits unknown clipping for large damping forces
     #       (encountered with the allegro hand urdf)
