@@ -136,35 +136,39 @@ class CoordinateTransform(object):
         return q
 
     def to_matrix(self):
-        mat = torch.zeros((6, 6), device=self._device)
-        t = torch.zeros((3, 3), device=self._device)
-        t[0, 1] = -self._trans[0, 2]
-        t[0, 2] = self._trans[0, 1]
-        t[1, 0] = self._trans[0, 2]
-        t[1, 2] = -self._trans[0, 0]
-        t[2, 0] = -self._trans[0, 1]
-        t[2, 1] = self._trans[0, 0]
-        _Erx = self._rot[0].transpose(-2, 1).matmul(t)
+        batch_size = self._rot.shape[0]
 
-        mat[:3, :3] = self._rot[0].transpose(-2, 1)
-        mat[3:, 0:3] = -_Erx
-        mat[3:, 3:] = self._rot[0].transpose(-2, 1)
+        mat = torch.zeros((batch_size, 6, 6), device=self._device)
+        t = torch.zeros((batch_size, 3, 3), device=self._device)
+        t[:, 0, 1] = -self._trans[:, 2]
+        t[:, 0, 2] = self._trans[:, 1]
+        t[:, 1, 0] = self._trans[:, 2]
+        t[:, 1, 2] = -self._trans[:, 0]
+        t[:, 2, 0] = -self._trans[:, 1]
+        t[:, 2, 1] = self._trans[:, 0]
+        _Erx = self._rot.transpose(-2, -1).matmul(t)
+
+        mat[:, :3, :3] = self._rot.transpose(-2, -1)
+        mat[:, 3:, 0:3] = -_Erx
+        mat[:, 3:, 3:] = self._rot.transpose(-2, -1)
         return mat
 
     def to_matrix_transpose(self):
-        mat = torch.zeros((6, 6), device=self._device)
-        t = torch.zeros((3, 3), device=self._device)
-        t[0, 1] = -self._trans[0, 2]
-        t[0, 2] = self._trans[0, 1]
-        t[1, 0] = self._trans[0, 2]
-        t[1, 2] = -self._trans[0, 0]
-        t[2, 0] = -self._trans[0, 1]
-        t[2, 1] = self._trans[0, 0]
-        _Erx = self._rot[0].matmul(t)
+        batch_size = self._rot.shape[0]
 
-        mat[:3, :3] = self._rot[0].transpose(1, 0)
-        mat[3:, 0:3] = -_Erx.transpose(1, 0)
-        mat[3:, 3:] = self._rot[0].transpose(1, 0)
+        mat = torch.zeros((batch_size, 6, 6), device=self._device)
+        t = torch.zeros((batch_size, 3, 3), device=self._device)
+        t[:, 0, 1] = -self._trans[:, 2]
+        t[:, 0, 2] = self._trans[:, 1]
+        t[:, 1, 0] = self._trans[:, 2]
+        t[:, 1, 2] = -self._trans[:, 0]
+        t[:, 2, 0] = -self._trans[:, 1]
+        t[:, 2, 1] = self._trans[:, 0]
+        _Erx = self._rot.matmul(t)
+
+        mat[:, :3, :3] = self._rot.transpose(-1, -2)
+        mat[:, 3:, 0:3] = -_Erx.transpose(-1, -2)
+        mat[:, 3:, 3:] = self._rot.transpose(-1, -2)
         return mat
 
 
@@ -241,13 +245,8 @@ class SpatialMotionVec(object):
         )
 
     def dot(self, smv):
-        batch_size, n_d = self.ang.shape
-        tmp1 = torch.bmm(
-            self.ang.view(batch_size, 1, n_d), smv.ang.view(batch_size, n_d, 1)
-        ).squeeze()
-        tmp2 = torch.bmm(
-            self.lin.view(batch_size, 1, n_d), smv.lin.view(batch_size, n_d, 1)
-        ).squeeze()
+        tmp1 = torch.sum(self.ang * smv.ang, dim=-1)
+        tmp2 = torch.sum(self.lin * smv.lin, dim=-1)
         return tmp1 + tmp2
         # return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
 
