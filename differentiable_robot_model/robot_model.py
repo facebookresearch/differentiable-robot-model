@@ -183,6 +183,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             # this body's angular velocity is combination of the velocity experienced at it's parent's link
             # + the velocity created by this body's joint
             body.vel = body.joint_vel.add_motion_vec(new_vel)
+
         return
 
     @tensor_check
@@ -410,7 +411,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return H
 
     @tensor_check
-    def compute_forward_dynamics(
+    def compute_forward_dynamics_old(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
@@ -445,7 +446,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return qdd
 
     @tensor_check
-    def compute_forward_dynamics_inprogress(
+    def compute_forward_dynamics(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
@@ -543,7 +544,9 @@ class DifferentiableRobotModel(torch.nn.Module):
                 joint_pose = body.joint_pose
 
                 # transform is of shape 6x6 and shared across all items in a batch
-                transform_mat = joint_pose.to_matrix().repeat((batch_size, 1, 1))
+                transform_mat = joint_pose.to_matrix()
+                if transform_mat.shape[0] != IA.shape[0]:
+                    transform_mat = transform_mat.repeat(IA.shape[0], 1, 1)
                 parent_body.IA += torch.bmm(transform_mat.transpose(-2, -1), IA).bmm(
                     transform_mat
                 )

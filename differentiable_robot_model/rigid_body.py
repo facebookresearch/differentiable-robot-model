@@ -84,7 +84,9 @@ class DifferentiableRigidBody(torch.nn.Module):
         fixed_rotation = (z_rot(yaw) @ y_rot(pitch)) @ x_rot(roll)
 
         # when we update the joint angle, we also need to update the transformation
-        self.joint_pose.set_translation(torch.reshape(self.trans(), (1, 3)))
+        self.joint_pose.set_translation(
+            torch.reshape(self.trans(), (1, 3)).repeat(batch_size, 1)
+        )
         if torch.abs(self.joint_axis[0, 0]) == 1:
             rot = x_rot(torch.sign(self.joint_axis[0, 0]) * q)
         elif torch.abs(self.joint_axis[0, 1]) == 1:
