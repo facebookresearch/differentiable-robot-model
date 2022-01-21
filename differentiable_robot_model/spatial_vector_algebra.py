@@ -248,7 +248,6 @@ class SpatialMotionVec(object):
         tmp1 = torch.sum(self.ang * smv.ang, dim=-1)
         tmp2 = torch.sum(self.lin * smv.lin, dim=-1)
         return tmp1 + tmp2
-        # return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
 
 
 class SpatialForceVec(object):
@@ -301,14 +300,8 @@ class SpatialForceVec(object):
         )
 
     def dot(self, smv):
-        # return self.ang[0].dot(smv.ang[0]) + self.lin[0].dot(smv.lin[0])
-        batch_size, n_d = self.ang.shape
-        tmp1 = torch.bmm(
-            self.ang.view(batch_size, 1, n_d), smv.ang.view(batch_size, n_d, 1)
-        ).squeeze()
-        tmp2 = torch.bmm(
-            self.lin.view(batch_size, 1, n_d), smv.lin.view(batch_size, n_d, 1)
-        ).squeeze()
+        tmp1 = torch.sum(self.ang * smv.ang, dim=-1)
+        tmp2 = torch.sum(self.lin * smv.lin, dim=-1)
         return tmp1 + tmp2
 
 

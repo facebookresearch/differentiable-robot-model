@@ -45,7 +45,9 @@ test_data = [
 batch_shapes = [
     tuple(),
     (1,),
-    (3,),
+    (3,),  # same dim size as so3 variables
+    (6,),  # same dim size as se3 variables
+    (7,),  # same dim size as 7dof robot states
 ]
 
 ################
