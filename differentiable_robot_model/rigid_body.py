@@ -111,7 +111,7 @@ class DifferentiableRigidBody(torch.nn.Module):
         for mimicbody in self._mimicked_bodies:
             mult = mimicbody.mimicmult
             offset = mimicbody.mimicoffset
-            mimicbody.update_joint_state(mult*q+offset, mult*qd+offset)
+            mimicbody.update_joint_state(mult*q+offset, mult*qd)
         return
 
     def update_joint_acc(self, qdd):
@@ -122,8 +122,7 @@ class DifferentiableRigidBody(torch.nn.Module):
         )
         for mimicbody in self._mimicked_bodies:
             mult = mimicbody.mimicmult
-            offset = mimicbody.mimicoffset
-            mimicbody.update_joint_acc(mult*qdd+offset)
+            mimicbody.update_joint_acc(mult*qdd)
         return
 
     def get_joint_limits(self):
