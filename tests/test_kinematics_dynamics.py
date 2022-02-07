@@ -42,6 +42,7 @@ test_data = [
     ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
 ]
 
+# Note: test batch sizes that coincide with other data dims to ensure errors don't occur during reshaping ops
 batch_shapes = [
     tuple(),
     (1,),
