@@ -183,6 +183,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             # this body's angular velocity is combination of the velocity experienced at it's parent's link
             # + the velocity created by this body's joint
             body.vel = body.joint_vel.add_motion_vec(new_vel)
+
         return
 
     @tensor_check
@@ -410,7 +411,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return H
 
     @tensor_check
-    def compute_forward_dynamics(
+    def compute_forward_dynamics_old(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
@@ -445,7 +446,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         return qdd
 
     @tensor_check
-    def compute_forward_dynamics_inprogress(
+    def compute_forward_dynamics(
         self,
         q: torch.Tensor,
         qd: torch.Tensor,
@@ -465,6 +466,11 @@ class DifferentiableRobotModel(torch.nn.Module):
         Returns: accelerations that are the result of applying forces f in state q, qd
 
         """
+        assert q.ndim == 2
+        assert qd.ndim == 2
+        assert q.shape[1] == self._n_dofs
+        assert qd.shape[1] == self._n_dofs
+
         qdd = torch.zeros_like(q)
         batch_size = q.shape[0]
 
@@ -496,7 +502,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             body.c = body.vel.cross_motion_vec(body.joint_vel)
             icxvel = body.inertia.multiply_motion_vec(body.vel)
             body.pA = body.vel.cross_force_vec(icxvel)
-            # IA is 6x6, we repeat it for each item in the batch, as the inertia matrix is shared across the whole batch
+            # IA is 6x6, we repeat it for each item in the batch, as the raw inertia matrix is shared across the whole batch
             body.IA = body.inertia.get_spatial_mat().repeat((batch_size, 1, 1))
 
         for i in range(len(self._bodies) - 1, 0, -1):
@@ -507,8 +513,7 @@ class DifferentiableRobotModel(torch.nn.Module):
                 ang_motion=body.joint_axis.repeat((batch_size, 1)),
             )
             body.S = S
-            # we take the first inertia matrix, since it doesn't matter
-            Utmp = body.IA[0].matmul(S.get_vector().transpose(-2, -1)).transpose(-2, -1)
+            Utmp = torch.bmm(body.IA, S.get_vector()[..., None])[..., 0]
             body.U = SpatialForceVec(lin_force=Utmp[:, 3:], ang_force=Utmp[:, :3])
             body.d = S.dot(body.U)
             if body.joint_idx is not None:
@@ -542,8 +547,10 @@ class DifferentiableRobotModel(torch.nn.Module):
 
                 joint_pose = body.joint_pose
 
-                # transform is of shape 6x6 and shared across all items in a batch
-                transform_mat = joint_pose.to_matrix().repeat((batch_size, 1, 1))
+                # transform is of shape 6x6
+                transform_mat = joint_pose.to_matrix()
+                if transform_mat.shape[0] != IA.shape[0]:
+                    transform_mat = transform_mat.repeat(IA.shape[0], 1, 1)
                 parent_body.IA += torch.bmm(transform_mat.transpose(-2, -1), IA).bmm(
                     transform_mat
                 )

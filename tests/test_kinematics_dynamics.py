@@ -42,10 +42,13 @@ test_data = [
     ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
 ]
 
+# Note: test batch sizes that coincide with other data dims to ensure errors don't occur during reshaping ops
 batch_shapes = [
     tuple(),
     (1,),
-    (3,),
+    (3,),  # same dim size as so3 variables
+    (6,),  # same dim size as se3 variables
+    (7,),  # same dim size as 7dof robot states
 ]
 
 ################
