@@ -201,7 +201,7 @@ def logMapSE3(T, epsilon=1.0e-14):
                     (2.0 * torch.sin(norm_omega))
                     - (norm_omega * (1.0 + torch.cos(norm_omega)))
                 )
-                / ((2 * (norm_omega ** 2) * torch.sin(norm_omega)) + epsilon)
+                / ((2 * (norm_omega**2) * torch.sin(norm_omega)) + epsilon)
             )
             * torch.matmul(omegahat, omegahat)
         )
