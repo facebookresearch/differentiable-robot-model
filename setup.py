@@ -7,11 +7,15 @@
 
 import pathlib
 import os
+import subprocess
 from setuptools import setup
+
+REQUIRES_PYTHON = ">=3.6.0"
 
 # current directory
 HERE = pathlib.Path(__file__).parent
 
+# description
 README = (HERE / "README.md").read_text()
 DESC = (
     "A pytorch library that implements differentiable and learnable robot models, "
@@ -19,9 +23,23 @@ DESC = (
     "and/or propagate gradients through analytical robot computations such as forward kinematics."
 )
 
-REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.1.1-6"
+# resolve version
+latest_tag = (
+    subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
+    .decode("utf-8")
+    .strip("\n")
+)
+version_num = latest_tag.strip("v")
+rev_num = (
+    subprocess.check_output(["git", "rev-list", f"{latest_tag}..HEAD", "--count"])
+    .decode("utf-8")
+    .strip("\n")
+)
+VERSION = version_num
+if int(rev_num) > 0:
+    VERSION = f"{version_num}-{rev_num}"
 
+# resource files
 data_files = []
 datadir = "diff_robot_data"
 
@@ -43,6 +61,7 @@ print("found resource files: %i" % len(data_files))
 for n in data_files:
     print("-- %s" % n)
 
+# dependencies
 install_requires = [
     "torch >= 1.6",
     "pyquaternion >= 0.9.9",
@@ -51,6 +70,7 @@ install_requires = [
     "Sphinx >= 3.5.4",
     "recommonmark >= 0.7.1",
 ]
+
 # run setup
 setup(
     name="differentiable-robot-model",
