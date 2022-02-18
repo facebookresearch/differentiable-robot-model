@@ -18,28 +18,37 @@ torch.set_default_tensor_type(torch.FloatTensor)
 # (rel_urdf_path, test_link_list)
 test_data = [
     # Fetch arm
+    # (
+    #     "fetch_description/urdf/fetch_arm_no_gripper_small_damping.urdf",
+    #     [(7, "virtual_ee_link")],
+    # ),
+    # # Toy
+    # ("2link_robot.urdf", [(2, "endEffector")]),
+    # # Kuka iiwa
+    # ("kuka_iiwa/urdf/iiwa7.urdf", [(7, "iiwa_link_ee")]),
+    # # Franka_panda
+    # ("panda_description/urdf/panda_no_gripper.urdf", [(7, "panda_virtual_ee_link")]),
+    # # Allegro hand
+    # (
+    #     "allegro/urdf/allegro_hand_description_left_small_damping.urdf",
+    #     [
+    #         (4, "link_11.0_tip"),
+    #         (9, "link_7.0_tip"),
+    #         (14, "link_3.0_tip"),
+    #         (19, "link_15.0_tip"),
+    #     ],
+    # ),
+    # Trifinger Edu
     (
-        "fetch_description/urdf/fetch_arm_no_gripper_small_damping.urdf",
-        [(7, "virtual_ee_link")],
-    ),
-    # Toy
-    ("2link_robot.urdf", [(2, "endEffector")]),
-    # Kuka iiwa
-    ("kuka_iiwa/urdf/iiwa7.urdf", [(7, "iiwa_link_ee")]),
-    # Franka_panda
-    ("panda_description/urdf/panda_no_gripper.urdf", [(7, "panda_virtual_ee_link")]),
-    # Allegro hand
-    (
-        "allegro/urdf/allegro_hand_description_left_small_damping.urdf",
+        "trifinger_edu_description/trifinger_edu.urdf",
         [
-            (4, "link_11.0_tip"),
-            (9, "link_7.0_tip"),
-            (14, "link_3.0_tip"),
-            (19, "link_15.0_tip"),
+            (5, "finger_tip_link_0"),
+            (10, "finger_tip_link_120"),
+            (15, "finger_tip_link_240"),
         ],
     ),
     # Kinova
-    ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
+    # ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
 ]
 
 # Note: test batch sizes that coincide with other data dims to ensure errors don't occur during reshaping ops
@@ -114,6 +123,11 @@ def sim(test_info):
 
     p.setGravity(0, 0, -9.81, physicsClientId=pc_id)
     num_joints = p.getNumJoints(robot_id, physicsClientId=pc_id)
+
+    print(" ------PYBULLET----------")
+    for i in range(num_joints):
+        print(p.getJointInfo(robot_id, i))
+    print(" ------PYBULLET----------")
 
     return PybulletInstance(
         pc_id=pc_id,
