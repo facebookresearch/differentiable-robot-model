@@ -128,6 +128,30 @@ class DifferentiableRobotModel(torch.nn.Module):
             self._bodies.append(body)
             self._name_to_idx_map[body.name] = i
 
+        # New way of maintaining relationships between bodies
+        self._bodies2 = {}
+        for (i, link) in enumerate(self._urdf_model.robot.links):
+            # Add body
+            rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
+            body_name = rigid_body_params["link_name"]
+            self._bodies2[body_name] = DifferentiableRigidBody(
+                rigid_body_params, device=self._device
+            )
+
+            if i == 0:
+                self._root_body = self._bodies2[body_name]
+            else:
+                # Add joint relation
+                parent_body_name = self._urdf_model.get_name_of_parent_body(body_name)
+                self._bodies2[body_name].add_parent(self._bodies2[parent_body_name])
+                self._bodies2[parent_body_name].add_child(self._bodies2[body_name])
+
+                # Add controlled joint
+                """
+                if rigid_body_params["joint_type"] != "fixed":
+                    self._controlled_joints.append(body_name)
+                """
+
     @tensor_check
     def update_kinematic_state(self, q: torch.Tensor, qd: torch.Tensor) -> None:
         r"""
@@ -188,6 +212,30 @@ class DifferentiableRobotModel(torch.nn.Module):
 
     @tensor_check
     def compute_forward_kinematics(
+        self, q: torch.Tensor, link_name: str
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        r"""
+
+        Args:
+            q: joint angles [batch_size x n_dofs]
+            link_name: name of link
+
+        Returns: translation and rotation of the link frame
+
+        """
+        q_dict = {}
+        for i, body_name in enumerate(self._bodies2):
+            if i in self._controlled_joints:
+                joint_idx = self._controlled_joints.index(i)
+                q_dict[body_name] = q[:, joint_idx].unsqueeze(1)
+
+        pose_dict = self._root_body.forward_kinematics(q_dict)
+        body_pose = pose_dict[link_name]
+
+        return body_pose.translation(), body_pose.get_quaternion()
+
+    @tensor_check
+    def compute_forward_kinematics_old(
         self, q: torch.Tensor, link_name: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
@@ -599,7 +647,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         """
         assert len(q.shape) == 2
         batch_size = q.shape[0]
-        self.compute_forward_kinematics(q, link_name)
+        self.compute_forward_kinematics_old(q, link_name)
 
         e_pose = self._bodies[self._name_to_idx_map[link_name]].pose
         p_e = e_pose.translation()
