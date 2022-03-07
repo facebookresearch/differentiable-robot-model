@@ -681,46 +681,52 @@ class DifferentiableRobotModel(torch.nn.Module):
         body_idx = self._name_to_idx_map[link_name]
         if parameter_name in ["trans", "rot_angles", "joint_damping"]:
             parent_object = self._bodies[body_idx]
+            parent_object2 = self._bodies2[link_name]
         elif parameter_name in ["mass", "inertia_mat", "com"]:
             parent_object = self._bodies[body_idx].inertia
+            parent_object2 = self._bodies2[link_name].inertia
         else:
             raise AttributeError(
                 "Invalid parameter name. Accepted parameter names are: "
                 "trans, rot_angles, joint_damping, mass, inertia_mat, com"
             )
-        return parent_object
+        return parent_object, parent_object2
 
     def make_link_param_learnable(
         self, link_name: str, parameter_name: str, parametrization: torch.nn.Module
     ):
-        parent_object = self._get_parent_object_of_param(link_name, parameter_name)
+        parent_objects = self._get_parent_object_of_param(link_name, parameter_name)
+
         # Replace current parameter with a learnable module
-        parent_object.__delattr__(parameter_name)
-        parent_object.add_module(parameter_name, parametrization.to(self._device))
+        for parent_object in parent_objects:
+            parent_object.__delattr__(parameter_name)
+            parent_object.add_module(parameter_name, parametrization.to(self._device))
 
     def freeze_learnable_link_param(self, link_name: str, parameter_name: str):
 
-        parent_object = self._get_parent_object_of_param(link_name, parameter_name)
+        parent_objects = self._get_parent_object_of_param(link_name, parameter_name)
         # Get output value of current module
-        param_module = getattr(parent_object, parameter_name)
-        assert (
-            type(param_module).__bases__[0] is torch.nn.Module
-        ), f"{parameter_name} of {link_name} is not a learnable module."
+        for parent_object in parent_objects:
+            param_module = getattr(parent_object, parameter_name)
+            assert (
+                type(param_module).__bases__[0] is torch.nn.Module
+            ), f"{parameter_name} of {link_name} is not a learnable module."
 
-        for param in param_module.parameters():
-            param.requires_grad = False
+            for param in param_module.parameters():
+                param.requires_grad = False
 
     def unfreeze_learnable_link_param(self, link_name: str, parameter_name: str):
 
-        parent_object = self._get_parent_object_of_param(link_name, parameter_name)
+        parent_objects = self._get_parent_object_of_param(link_name, parameter_name)
         # Get output value of current module
-        param_module = getattr(parent_object, parameter_name)
-        assert (
-            type(param_module).__bases__[0] is torch.nn.Module
-        ), f"{parameter_name} of {link_name} is not a learnable module."
+        for parent_object in parent_objects:
+            param_module = getattr(parent_object, parameter_name)
+            assert (
+                type(param_module).__bases__[0] is torch.nn.Module
+            ), f"{parameter_name} of {link_name} is not a learnable module."
 
-        for param in param_module.parameters():
-            param.requires_grad = True
+            for param in param_module.parameters():
+                param.requires_grad = True
 
     def get_joint_limits(self) -> List[Dict[str, torch.Tensor]]:
         r"""
