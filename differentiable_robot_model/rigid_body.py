@@ -5,7 +5,7 @@ Differentiable rigid body
 TODO
 """
 
-from typing import List
+from typing import List, Optional
 
 import torch
 from .spatial_vector_algebra import (
@@ -26,14 +26,14 @@ class DifferentiableRigidBody(torch.nn.Module):
     Differentiable Representation of a link
     """
 
-    _parents: List["DifferentiableRigidBody"]
+    _parents: Optional["DifferentiableRigidBody"]
     _children: List["DifferentiableRigidBody"]
 
     def __init__(self, rigid_body_params, device="cpu"):
 
         super().__init__()
 
-        self._parents = []
+        self._parents = None
         self._children = []
 
         self._device = torch.device(device)
@@ -75,8 +75,8 @@ class DifferentiableRigidBody(torch.nn.Module):
         self.force = SpatialForceVec(device=self._device)
 
     # Kinematic tree construction
-    def add_parent(self, link: "DifferentiableRigidBody"):
-        self._parents.append(link)
+    def set_parent(self, link: "DifferentiableRigidBody"):
+        self._parent = link
 
     def add_child(self, link: "DifferentiableRigidBody"):
         self._children.append(link)

@@ -143,7 +143,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             else:
                 # Add joint relation
                 parent_body_name = self._urdf_model.get_name_of_parent_body(body_name)
-                self._bodies2[body_name].add_parent(self._bodies2[parent_body_name])
+                self._bodies2[body_name].set_parent(self._bodies2[parent_body_name])
                 self._bodies2[parent_body_name].add_child(self._bodies2[body_name])
 
                 # Add controlled joint
