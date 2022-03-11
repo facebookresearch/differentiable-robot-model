@@ -741,3 +741,12 @@ class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
         self.learnable_rigid_body_config = None
         self.name = "diff_2d_robot"
         super().__init__(self.urdf_path, self.name, device=device)
+
+
+class DifferentiableTrifingerEdu(DifferentiableRobotModel):
+    def __init__(self, device=None):
+        rel_urdf_path = "trifinger_edu_description/trifinger_edu.urdf"
+        self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
+        self.learnable_rigid_body_config = None
+        self.name = "trifinger_edu"
+        super().__init__(self.urdf_path, self.name, device=device)
