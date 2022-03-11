@@ -8,6 +8,7 @@ forward kinematics and inverse dynamics, in a fully differentiable way. We also 
 parameters (kinematics or dynamics parameters), which can then be identified from data (see examples folder).
 
 Currently, our code should work with any kinematic trees. This package comes with wrappers specifically for:
+* TriFinger Edu
 * Kuka iiwa
 * Franka Panda
 * Allegro Hand
