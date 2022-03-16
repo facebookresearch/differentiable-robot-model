@@ -36,7 +36,7 @@ branch_name = (
     .decode("utf-8")
     .strip("\n")
 )
-branch_hash = abs(hash(branch_name)) % (10**8)
+branch_hash = abs(hash(branch_name)) % (10**4)
 
 rev_num = (
     subprocess.check_output(["git", "rev-list", f"{latest_tag}..HEAD", "--count"])
@@ -46,7 +46,7 @@ rev_num = (
 
 VERSION = version_num
 if int(rev_num) > 0:
-    VERSION = f"{version_num}-{branch_hash}..{rev_num}"
+    VERSION = f"{version_num}a{rev_num}.dev{branch_hash}"
 
 # resource files
 data_files = []
