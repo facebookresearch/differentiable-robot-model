@@ -29,6 +29,7 @@ class URDFRobotModel(object):
         body_params = {}
         body_params["joint_id"] = i
         body_params["link_name"] = link.name
+        body_params["joint_mimic"] = None
 
         if i == 0:
             rot_angles = torch.zeros(3, device=self._device)
@@ -73,6 +74,13 @@ class URDFRobotModel(object):
                 joint_axis = torch.tensor(
                     joint.axis, dtype=torch.float32, device=self._device
                 ).reshape(1, 3)
+
+
+            if hasattr(joint, 'mimic') and joint.mimic is not None:
+                body_params["joint_mimic"] = {}
+                body_params["joint_mimic"]['joint'] = joint.mimic.joint
+                body_params["joint_mimic"]['multiplier'] = joint.mimic.multiplier if joint.mimic.multiplier is not None else 1.0
+                body_params["joint_mimic"]['offset'] = joint.mimic.offset if joint.mimic.offset is not None else 0.0
 
         body_params["rot_angles"] = rot_angles
         body_params["trans"] = trans

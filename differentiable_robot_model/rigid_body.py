@@ -29,8 +29,19 @@ class DifferentiableRigidBody(torch.nn.Module):
         super().__init__()
 
         self._device = torch.device(device)
-        self.joint_id = rigid_body_params["joint_id"]
+        self.joint_idx = rigid_body_params["joint_id"]
+        self.joint_name = rigid_body_params["joint_name"]
         self.name = rigid_body_params["link_name"]
+
+        self.mimicked_joint_name = ''
+        self.mimicmult = 1.0
+        self.mimicoffset = 0.0
+        if rigid_body_params["joint_mimic"] is not None:
+            self.mimicked_joint_name = rigid_body_params["joint_mimic"]['joint']
+            self.mimicmult = rigid_body_params["joint_mimic"]['multiplier']
+            self.mimicoffset = rigid_body_params["joint_mimic"]['offset']
+        self._mimicked_bodies = torch.nn.ModuleList()
+
 
         # parameters that can be made learnable
         self.inertia = DifferentiableSpatialRigidBodyInertia(
@@ -68,6 +79,9 @@ class DifferentiableRigidBody(torch.nn.Module):
 
         return
 
+    def relate_mimic_body(self, body: 'DifferentiableRigidBody'):
+        self._mimicked_bodies.append(body)
+
     def update_joint_state(self, q, qd):
         batch_size = q.shape[0]
 
@@ -95,6 +109,11 @@ class DifferentiableRigidBody(torch.nn.Module):
             rot = z_rot(torch.sign(self.joint_axis[0, 2]) * q)
 
         self.joint_pose.set_rotation(fixed_rotation.repeat(batch_size, 1, 1) @ rot)
+
+        for mimicbody in self._mimicked_bodies:
+            mult = mimicbody.mimicmult
+            offset = mimicbody.mimicoffset
+            mimicbody.update_joint_state(mult*q+offset, mult*qd)
         return
 
     def update_joint_acc(self, qdd):
@@ -103,6 +122,9 @@ class DifferentiableRigidBody(torch.nn.Module):
         self.joint_acc = SpatialMotionVec(
             torch.zeros_like(joint_ang_acc), joint_ang_acc
         )
+        for mimicbody in self._mimicked_bodies:
+            mult = mimicbody.mimicmult
+            mimicbody.update_joint_acc(mult*qdd)
         return
 
     def get_joint_limits(self):

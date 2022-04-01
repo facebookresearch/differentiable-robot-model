@@ -111,6 +111,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         # joint is at the beginning of a link
         self._name_to_idx_map = dict()
 
+        mimicked_joints = []
         for (i, link) in enumerate(self._urdf_model.robot.links):
 
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
@@ -120,13 +121,21 @@ class DifferentiableRobotModel(torch.nn.Module):
             )
 
             body.joint_idx = None
-            if rigid_body_params["joint_type"] != "fixed":
+            if rigid_body_params["joint_type"] != "fixed" and \
+                    rigid_body_params["joint_mimic"] is None:
                 body.joint_idx = self._n_dofs
                 self._n_dofs += 1
                 self._controlled_joints.append(i)
+            elif rigid_body_params["joint_mimic"] is not None:
+                mimicked_joints.append(i)
 
             self._bodies.append(body)
             self._name_to_idx_map[body.name] = i
+        for j in mimicked_joints:
+            mimicbody = self._bodies[j]
+            for body in self._bodies:
+                if body.joint_name == mimicbody.mimicked_joint_name:
+                    body.relate_mimic_body(mimicbody)
 
     @tensor_check
     def update_kinematic_state(self, q: torch.Tensor, qd: torch.Tensor) -> None:
