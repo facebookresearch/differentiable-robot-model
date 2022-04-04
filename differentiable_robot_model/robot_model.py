@@ -211,8 +211,8 @@ class DifferentiableRobotModel(torch.nn.Module):
         return
 
     @tensor_check
-    def compute_forward_kinematics(
-        self, q: torch.Tensor, link_name: str
+    def compute_forward_kinematics_all_links(
+        self, q: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
 
@@ -230,13 +230,15 @@ class DifferentiableRobotModel(torch.nn.Module):
                 q_dict[body_name] = q[:, joint_idx].unsqueeze(1)
 
         pose_dict = self._root_body.forward_kinematics(q_dict)
-        body_pose = pose_dict[link_name]
 
-        return body_pose.translation(), body_pose.get_quaternion()
+        return {
+            link: (pose_dict[link].translation(), pose_dict[link].get_quaternion())
+            for link in pose_dict.keys()
+        }
 
     @tensor_check
-    def compute_forward_kinematics_old(
-        self, q: torch.Tensor, link_name: str
+    def compute_forward_kinematics(
+        self, q: torch.Tensor, link_name: str, recursive: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
 
@@ -248,13 +250,18 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         """
         assert q.ndim == 2
-        qd = torch.zeros_like(q)
-        self.update_kinematic_state(q, qd)
 
-        pose = self._bodies[self._name_to_idx_map[link_name]].pose
-        pos = pose.translation()
-        rot = pose.get_quaternion()
-        return pos, rot
+        if recursive:
+            return self.compute_forward_kinematics_all_links(q)[link_name]
+
+        else:
+            qd = torch.zeros_like(q)
+            self.update_kinematic_state(q, qd)
+
+            pose = self._bodies[self._name_to_idx_map[link_name]].pose
+            pos = pose.translation()
+            rot = pose.get_quaternion()
+            return pos, rot
 
     @tensor_check
     def iterative_newton_euler(self, base_acc: SpatialMotionVec) -> None:
