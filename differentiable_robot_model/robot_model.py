@@ -654,7 +654,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         """
         assert len(q.shape) == 2
         batch_size = q.shape[0]
-        self.compute_forward_kinematics_old(q, link_name)
+        self.compute_forward_kinematics(q, link_name)
 
         e_pose = self._bodies[self._name_to_idx_map[link_name]].pose
         p_e = e_pose.translation()
