@@ -38,6 +38,15 @@ test_data = [
             (19, "link_15.0_tip"),
         ],
     ),
+    # Trifinger Edu
+    (
+        "trifinger_edu_description/trifinger_edu.urdf",
+        [
+            (5, "finger_tip_link_0"),
+            (10, "finger_tip_link_120"),
+            (15, "finger_tip_link_240"),
+        ],
+    ),
     # Kinova
     ("kinova_description/urdf/jaco_clean.urdf", [(8, "j2n6s300_link_ee")]),
 ]
