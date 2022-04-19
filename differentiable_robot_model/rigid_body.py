@@ -83,6 +83,11 @@ class DifferentiableRigidBody(torch.nn.Module):
 
     # Recursive algorithms
     def forward_kinematics(self, q_dict):
+        """Recursive forward kinematics
+        Computes transformations from self to all descendants.
+
+        Returns: Dict[link_name, transform_from_self_to_link]
+        """
         # Compute joint pose
         if self.name in q_dict:
             q = q_dict[self.name]
