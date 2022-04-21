@@ -609,9 +609,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             torch.zeros([batch_size, 3, self._n_dofs], device=self._device),
         )
 
-        joint_id = (
-            self._urdf_model.find_joint_of_body(link_name) + 1
-        )  # joint_id starts at index 0 for link 1 not base link
+        joint_id = self._bodies[self._name_to_idx_map[link_name]].joint_id
         while link_name != self._bodies[0].name:
             if joint_id in self._controlled_joints:
                 i = self._controlled_joints.index(joint_id)
@@ -625,7 +623,7 @@ class DifferentiableRobotModel(torch.nn.Module):
                 ang_jac[:, :, i] = z_i
 
             link_name = self._urdf_model.get_name_of_parent_body(link_name)
-            joint_id = self._urdf_model.find_joint_of_body(link_name) + 1
+            joint_id = self._bodies[self._name_to_idx_map[link_name]].joint_id
 
         return lin_jac, ang_jac
 
