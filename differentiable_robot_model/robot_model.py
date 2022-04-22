@@ -112,21 +112,29 @@ class DifferentiableRobotModel(torch.nn.Module):
         self._name_to_idx_map = dict()
 
         for (i, link) in enumerate(self._urdf_model.robot.links):
-
+            # Initialize body object
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
-
             body = DifferentiableRigidBody(
                 rigid_body_params=rigid_body_params, device=self._device
             )
 
+            # Joint properties
             body.joint_idx = None
             if rigid_body_params["joint_type"] != "fixed":
                 body.joint_idx = self._n_dofs
                 self._n_dofs += 1
                 self._controlled_joints.append(i)
 
+            # Add to data structures
             self._bodies.append(body)
             self._name_to_idx_map[body.name] = i
+
+        # Once all bodies are loaded, connect each body to its parent
+        for body in self._bodies[1:]:
+            parent_body_name = self._urdf_model.get_name_of_parent_body(body.name)
+            parent_body_idx = self._name_to_idx_map[parent_body_name]
+            body.set_parent(self._bodies[parent_body_idx])
+            self._bodies[parent_body_idx].add_child(body)
 
     @tensor_check
     def update_kinematic_state(self, q: torch.Tensor, qd: torch.Tensor) -> None:
@@ -187,8 +195,34 @@ class DifferentiableRobotModel(torch.nn.Module):
         return
 
     @tensor_check
+    def compute_forward_kinematics_all_links(
+        self, q: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        r"""
+
+        Args:
+            q: joint angles [batch_size x n_dofs]
+            link_name: name of link
+
+        Returns: translation and rotation of the link frame
+
+        """
+        # Create joint state dictionary
+        q_dict = {}
+        for i, body_idx in enumerate(self._controlled_joints):
+            q_dict[self._bodies[body_idx].name] = q[:, i].unsqueeze(1)
+
+        # Call forward kinematics on root node
+        pose_dict = self._bodies[0].forward_kinematics(q_dict)
+
+        return {
+            link: (pose_dict[link].translation(), pose_dict[link].get_quaternion())
+            for link in pose_dict.keys()
+        }
+
+    @tensor_check
     def compute_forward_kinematics(
-        self, q: torch.Tensor, link_name: str
+        self, q: torch.Tensor, link_name: str, recursive: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
 
@@ -200,13 +234,18 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         """
         assert q.ndim == 2
-        qd = torch.zeros_like(q)
-        self.update_kinematic_state(q, qd)
 
-        pose = self._bodies[self._name_to_idx_map[link_name]].pose
-        pos = pose.translation()
-        rot = pose.get_quaternion()
-        return pos, rot
+        if recursive:
+            return self.compute_forward_kinematics_all_links(q)[link_name]
+
+        else:
+            qd = torch.zeros_like(q)
+            self.update_kinematic_state(q, qd)
+
+            pose = self._bodies[self._name_to_idx_map[link_name]].pose
+            pos = pose.translation()
+            rot = pose.get_quaternion()
+            return pos, rot
 
     @tensor_check
     def iterative_newton_euler(self, base_acc: SpatialMotionVec) -> None:
@@ -644,13 +683,14 @@ class DifferentiableRobotModel(torch.nn.Module):
         self, link_name: str, parameter_name: str, parametrization: torch.nn.Module
     ):
         parent_object = self._get_parent_object_of_param(link_name, parameter_name)
+
         # Replace current parameter with a learnable module
         parent_object.__delattr__(parameter_name)
         parent_object.add_module(parameter_name, parametrization.to(self._device))
 
     def freeze_learnable_link_param(self, link_name: str, parameter_name: str):
-
         parent_object = self._get_parent_object_of_param(link_name, parameter_name)
+
         # Get output value of current module
         param_module = getattr(parent_object, parameter_name)
         assert (
@@ -661,8 +701,8 @@ class DifferentiableRobotModel(torch.nn.Module):
             param.requires_grad = False
 
     def unfreeze_learnable_link_param(self, link_name: str, parameter_name: str):
-
         parent_object = self._get_parent_object_of_param(link_name, parameter_name)
+
         # Get output value of current module
         param_module = getattr(parent_object, parameter_name)
         assert (

@@ -30,14 +30,23 @@ latest_tag = (
     .strip("\n")
 )
 version_num = latest_tag.strip("v")
+
+branch_name = (
+    subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+    .decode("utf-8")
+    .strip("\n")
+)
+branch_hash = abs(hash(branch_name)) % (10**4)
+
 rev_num = (
     subprocess.check_output(["git", "rev-list", f"{latest_tag}..HEAD", "--count"])
     .decode("utf-8")
     .strip("\n")
 )
+
 VERSION = version_num
 if int(rev_num) > 0:
-    VERSION = f"{version_num}-{rev_num}"
+    VERSION = f"{version_num}a{rev_num}.dev{branch_hash}"
 
 # resource files
 data_files = []

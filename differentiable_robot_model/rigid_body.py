@@ -5,6 +5,8 @@ Differentiable rigid body
 TODO
 """
 
+from typing import List, Optional
+
 import torch
 from .spatial_vector_algebra import (
     CoordinateTransform,
@@ -24,9 +26,15 @@ class DifferentiableRigidBody(torch.nn.Module):
     Differentiable Representation of a link
     """
 
+    _parents: Optional["DifferentiableRigidBody"]
+    _children: List["DifferentiableRigidBody"]
+
     def __init__(self, rigid_body_params, device="cpu"):
 
         super().__init__()
+
+        self._parents = None
+        self._children = []
 
         self._device = torch.device(device)
         self.joint_id = rigid_body_params["joint_id"]
@@ -66,8 +74,59 @@ class DifferentiableRigidBody(torch.nn.Module):
 
         self.force = SpatialForceVec(device=self._device)
 
-        return
+    # Kinematic tree construction
+    def set_parent(self, link: "DifferentiableRigidBody"):
+        self._parent = link
 
+    def add_child(self, link: "DifferentiableRigidBody"):
+        self._children.append(link)
+
+    # Recursive algorithms
+    def forward_kinematics(self, q_dict):
+        """Recursive forward kinematics
+        Computes transformations from self to all descendants.
+
+        Returns: Dict[link_name, transform_from_self_to_link]
+        """
+        # Compute joint pose
+        if self.name in q_dict:
+            q = q_dict[self.name]
+            batch_size = q.shape[0]
+
+            rot_angles_vals = self.rot_angles()
+            roll = rot_angles_vals[0, 0]
+            pitch = rot_angles_vals[0, 1]
+            yaw = rot_angles_vals[0, 2]
+            fixed_rotation = (z_rot(yaw) @ y_rot(pitch)) @ x_rot(roll)
+
+            if torch.abs(self.joint_axis[0, 0]) == 1:
+                rot = x_rot(torch.sign(self.joint_axis[0, 0]) * q)
+            elif torch.abs(self.joint_axis[0, 1]) == 1:
+                rot = y_rot(torch.sign(self.joint_axis[0, 1]) * q)
+            else:
+                rot = z_rot(torch.sign(self.joint_axis[0, 2]) * q)
+
+            joint_pose = CoordinateTransform(
+                rot=fixed_rotation.repeat(batch_size, 1, 1) @ rot,
+                trans=torch.reshape(self.trans(), (1, 3)).repeat(batch_size, 1),
+                device=self._device,
+            )
+
+        else:
+            joint_pose = self.joint_pose
+
+        # Compute forward kinematics of children
+        pose_dict = {self.name: self.pose}
+        for child in self._children:
+            pose_dict.update(child.forward_kinematics(q_dict))
+
+        # Apply joint pose
+        return {
+            body_name: joint_pose.multiply_transform(pose_dict[body_name])
+            for body_name in pose_dict
+        }
+
+    # Get/set
     def update_joint_state(self, q, qd):
         batch_size = q.shape[0]
 
