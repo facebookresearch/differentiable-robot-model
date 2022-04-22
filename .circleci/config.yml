@@ -83,7 +83,7 @@ jobs:
       - run:
           name: Run black formatting
           command: |
-            pip install black==22.1.0
+            pip install black==22.3.0
             black --check --exclude "docs" .
 
 workflows:

@@ -230,7 +230,8 @@ def set_pybullet_state(sim, robot_model, num_dofs, angles, velocities):
 
 # Main test class
 class TestRobotModel:
-    def test_end_effector_state(self, request, setup_dict, test_info):
+    @pytest.mark.parametrize("recursive", [True, False])
+    def test_end_effector_state(self, request, setup_dict, test_info, recursive):
         robot_model, sim, num_dofs, test_case = extract_setup_dict(setup_dict)
 
         for ee_link_idx, ee_link_name in test_info.link_list:
@@ -257,7 +258,7 @@ class TestRobotModel:
 
             # Differentiable model
             model_ee_pos, model_ee_quat = robot_model.compute_forward_kinematics(
-                torch.Tensor(test_case.joint_pos), ee_link_name
+                torch.Tensor(test_case.joint_pos), ee_link_name, recursive=recursive
             )
 
             # Compare
