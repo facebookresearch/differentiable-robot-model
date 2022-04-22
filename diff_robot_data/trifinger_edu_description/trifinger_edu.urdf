@@ -154,11 +154,6 @@
     <origin xyz="0 -0.008 -0.16"/>
   </joint>
   <!-- kinematics -->
-  <joint name="base_to_finger_0" type="fixed">
-    <parent link="trifinger_base_link"/>
-    <child link="finger_base_link_0"/>
-    <origin rpy="0 0 0" xyz="-0.0455 0.0 0"/>
-  </joint>
   <joint name="finger_base_to_upper_joint_0" type="revolute">
     <parent link="finger_base_link_0"/>
     <child link="finger_upper_link_0"/>
@@ -300,11 +295,6 @@
     <origin xyz="0 -0.008 -0.16"/>
   </joint>
   <!-- kinematics -->
-  <joint name="base_to_finger_120" type="fixed">
-    <parent link="trifinger_base_link"/>
-    <child link="finger_base_link_120"/>
-    <origin rpy="0 0 -2.09439510239" xyz="0.02275 0.0394041558722 0"/>
-  </joint>
   <joint name="finger_base_to_upper_joint_120" type="revolute">
     <parent link="finger_base_link_120"/>
     <child link="finger_upper_link_120"/>
@@ -446,11 +436,6 @@
     <origin xyz="0 -0.008 -0.16"/>
   </joint>
   <!-- kinematics -->
-  <joint name="base_to_finger_240" type="fixed">
-    <parent link="trifinger_base_link"/>
-    <child link="finger_base_link_240"/>
-    <origin rpy="0 0 -4.18879020479" xyz="0.02275 -0.0394041558722 0"/>
-  </joint>
   <joint name="finger_base_to_upper_joint_240" type="revolute">
     <parent link="finger_base_link_240"/>
     <child link="finger_upper_link_240"/>
@@ -471,5 +456,20 @@
     <limit effort="1000" lower="-3.14159265359" upper="3.14159265359" velocity="1000"/>
     <axis xyz="0 1 0"/>
     <origin rpy="0 0 0" xyz="0 -0.03745 -0.16"/>
+  </joint>
+  <joint name="base_to_finger_0" type="fixed">
+    <parent link="trifinger_base_link"/>
+    <child link="finger_base_link_0"/>
+    <origin rpy="0 0 0" xyz="-0.0455 0.0 0"/>
+  </joint>
+  <joint name="base_to_finger_120" type="fixed">
+    <parent link="trifinger_base_link"/>
+    <child link="finger_base_link_120"/>
+    <origin rpy="0 0 -2.09439510239" xyz="0.02275 0.0394041558722 0"/>
+  </joint>
+  <joint name="base_to_finger_240" type="fixed">
+    <parent link="trifinger_base_link"/>
+    <child link="finger_base_link_240"/>
+    <origin rpy="0 0 -4.18879020479" xyz="0.02275 -0.0394041558722 0"/>
   </joint>
 </robot>
