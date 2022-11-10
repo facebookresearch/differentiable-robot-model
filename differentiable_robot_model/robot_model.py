@@ -39,6 +39,11 @@ def tensor_check(function):
                 arg.device.type == obj._device.type
             ), f"Input argument of different device as module: {arg}"
 
+            # Check dtype
+            assert (
+                arg.dtype is obj._dtype
+            ), f"Input argument of different dtype as module: {arg}"
+
             # Check dimensions & convert to 2-dim tensors
             assert arg.ndim in [1, 2], f"Input tensors must have ndim of 1 or 2."
 
