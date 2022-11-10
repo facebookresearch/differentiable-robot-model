@@ -48,6 +48,7 @@ class ForwardDynamicsDataset(Dataset):
 
 def generate_random_forward_kinematics_data(robot_model, n_data, ee_name):
     device = robot_model._device
+    dtype = robot_model._dtype
 
     limits_per_joint = robot_model.get_joint_limits()
     ndof = robot_model._n_dofs
@@ -57,7 +58,7 @@ def generate_random_forward_kinematics_data(robot_model, n_data, ee_name):
         np.random.uniform(
             low=joint_lower_bounds, high=joint_upper_bounds, size=(n_data, ndof)
         ),
-        dtype=torch.float32,
+        dtype=dtype,
         device=device,
     )
 
@@ -69,6 +70,7 @@ def generate_random_forward_kinematics_data(robot_model, n_data, ee_name):
 
 def generate_random_inverse_dynamics_data(robot_model, n_data):
     device = robot_model._device
+    dtype = robot_model._dtype
 
     limits_per_joint = robot_model.get_joint_limits()
     joint_lower_bounds = np.asarray([joint["lower"] for joint in limits_per_joint])
@@ -80,13 +82,13 @@ def generate_random_inverse_dynamics_data(robot_model, n_data):
         np.random.uniform(
             low=joint_lower_bounds, high=joint_upper_bounds, size=(n_data, 7)
         ),
-        dtype=torch.float32,
+        dtype=dtype,
     )
     qd = torch.tensor(
         np.random.uniform(
             low=-joint_velocity_limits, high=joint_velocity_limits, size=(n_data, 7)
         ),
-        dtype=torch.float32,
+        dtype=dtype,
     )
     qdd_des = torch.tensor(
         np.random.uniform(
@@ -94,7 +96,7 @@ def generate_random_inverse_dynamics_data(robot_model, n_data):
             high=joint_velocity_limits * 2.0,
             size=(n_data, 7),
         ),
-        dtype=torch.float32,
+        dtype=dtype,
     )
 
     q = q.to(device)

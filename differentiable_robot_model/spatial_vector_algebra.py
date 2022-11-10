@@ -54,18 +54,19 @@ def z_rot(angle):
 
 
 class CoordinateTransform(object):
-    def __init__(self, rot=None, trans=None, device="cpu"):
+    def __init__(self, rot=None, trans=None, device="cpu", dtype=torch.float32):
         self._device = torch.device(device)
+        self._dtype = dtype
 
         if rot is None:
-            self._rot = torch.eye(3, device=self._device)
+            self._rot = torch.eye(3, device=self._device, dtype=self._dtype)
         else:
             self._rot = rot
         if len(self._rot.shape) == 2:
             self._rot = self._rot.unsqueeze(0)
 
         if trans is None:
-            self._trans = torch.zeros(3, device=self._device)
+            self._trans = torch.zeros(3, device=self._device, dtype=self._dtype)
         else:
             self._trans = trans
         if len(self._trans.shape) == 1:
@@ -138,8 +139,8 @@ class CoordinateTransform(object):
     def to_matrix(self):
         batch_size = self._rot.shape[0]
 
-        mat = torch.zeros((batch_size, 6, 6), device=self._device)
-        t = torch.zeros((batch_size, 3, 3), device=self._device)
+        mat = torch.zeros((batch_size, 6, 6), device=self._device, dtype=self._dtype)
+        t = torch.zeros((batch_size, 3, 3), device=self._device, dtype=self._dtype)
         t[:, 0, 1] = -self._trans[:, 2]
         t[:, 0, 2] = self._trans[:, 1]
         t[:, 1, 0] = self._trans[:, 2]
@@ -156,8 +157,8 @@ class CoordinateTransform(object):
     def to_matrix_transpose(self):
         batch_size = self._rot.shape[0]
 
-        mat = torch.zeros((batch_size, 6, 6), device=self._device)
-        t = torch.zeros((batch_size, 3, 3), device=self._device)
+        mat = torch.zeros((batch_size, 6, 6), device=self._device, dtype=self._dtype)
+        t = torch.zeros((batch_size, 3, 3), device=self._device, dtype=self._dtype)
         t[:, 0, 1] = -self._trans[:, 2]
         t[:, 0, 2] = self._trans[:, 1]
         t[:, 1, 0] = self._trans[:, 2]
@@ -178,6 +179,7 @@ class SpatialMotionVec(object):
         lin_motion: Optional[torch.Tensor] = None,
         ang_motion: Optional[torch.Tensor] = None,
         device=None,
+        dtype=torch.float32,
     ):
         if lin_motion is None or ang_motion is None:
             assert (
@@ -185,10 +187,14 @@ class SpatialMotionVec(object):
             ), "Cannot initialize with default values without specifying device."
             device = torch.device(device)
         self.lin = (
-            lin_motion if lin_motion is not None else torch.zeros((1, 3), device=device)
+            lin_motion
+            if lin_motion is not None
+            else torch.zeros((1, 3), device=device, dtype=dtype)
         )
         self.ang = (
-            ang_motion if ang_motion is not None else torch.zeros((1, 3), device=device)
+            ang_motion
+            if ang_motion is not None
+            else torch.zeros((1, 3), device=device, dtype=dtype)
         )
 
     def add_motion_vec(self, smv: SpatialMotionVec) -> SpatialMotionVec:
@@ -256,6 +262,7 @@ class SpatialForceVec(object):
         lin_force: Optional[torch.Tensor] = None,
         ang_force: Optional[torch.Tensor] = None,
         device=None,
+        dtype=torch.float32,
     ):
         if lin_force is None or ang_force is None:
             assert (
@@ -263,10 +270,14 @@ class SpatialForceVec(object):
             ), "Cannot initialize with default values without specifying device."
             device = torch.device(device)
         self.lin = (
-            lin_force if lin_force is not None else torch.zeros((1, 3), device=device)
+            lin_force
+            if lin_force is not None
+            else torch.zeros((1, 3), device=device, dtype=dtype)
         )
         self.ang = (
-            ang_force if ang_force is not None else torch.zeros((1, 3), device=device)
+            ang_force
+            if ang_force is not None
+            else torch.zeros((1, 3), device=device, dtype=dtype)
         )
 
     def add_force_vec(self, sfv: SpatialForceVec) -> SpatialForceVec:
@@ -306,7 +317,7 @@ class SpatialForceVec(object):
 
 
 class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
-    def __init__(self, rigid_body_params, device="cpu"):
+    def __init__(self, rigid_body_params, device="cpu", dtype=torch.float32):
         super().__init__()
         # lambda functions are a "hack" to make this compatible with the learnable variants
         self.mass = lambda: rigid_body_params["mass"]
@@ -314,6 +325,7 @@ class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
         self.inertia_mat = lambda: rigid_body_params["inertia_mat"]
 
         self._device = torch.device(device)
+        self._dtype = dtype
 
     def _get_parameter_values(self):
         return self.mass(), self.com(), self.inertia_mat()
@@ -344,7 +356,7 @@ class DifferentiableSpatialRigidBodyInertia(torch.nn.Module):
         inertia = inertia_mat + mass * (
             com_skew_symm_mat @ com_skew_symm_mat.transpose(-2, -1)
         )
-        mat = torch.zeros((6, 6), device=self._device)
+        mat = torch.zeros((6, 6), device=self._device, dtype=self._dtype)
         mat[:3, :3] = inertia
         mat[3, 0] = 0
         mat[3, 1] = mcom[0, 2]
