@@ -23,7 +23,13 @@ def robot_model(request):
 
 
 @pytest.mark.parametrize(
-    "default_tensor_type", [torch.cuda.FloatTensor, torch.FloatTensor, torch.cuda.DoubleTensor, torch.DoubleTensor]
+    "default_tensor_type",
+    [
+        torch.cuda.FloatTensor,
+        torch.FloatTensor,
+        torch.cuda.DoubleTensor,
+        torch.DoubleTensor,
+    ],
 )
 def test_robot_model(robot_model, default_tensor_type):
     # Set default tensor type
@@ -37,7 +43,9 @@ def test_robot_model(robot_model, default_tensor_type):
 
     # Method arguments
     n_dofs = robot_model._n_dofs
-    rand_n_dofs = torch.rand([1, n_dofs], device=robot_model._device, dtype=robot_model._dtype)
+    rand_n_dofs = torch.rand(
+        [1, n_dofs], device=robot_model._device, dtype=robot_model._dtype
+    )
     ee_name = "endEffector"
 
     # Run robot model methods
