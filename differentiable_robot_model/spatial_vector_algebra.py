@@ -16,7 +16,7 @@ def x_rot(angle):
         angle = angle.unsqueeze(0)
     angle = utils.convert_into_at_least_2d_pytorch_tensor(angle).squeeze(1)
     batch_size = angle.shape[0]
-    R = torch.zeros((batch_size, 3, 3), device=angle.device)
+    R = torch.zeros((batch_size, 3, 3), device=angle.device, dtype=angle.dtype)
     R[:, 0, 0] = torch.ones(batch_size)
     R[:, 1, 1] = torch.cos(angle)
     R[:, 1, 2] = -torch.sin(angle)
@@ -30,7 +30,7 @@ def y_rot(angle):
         angle = angle.unsqueeze(0)
     angle = utils.convert_into_at_least_2d_pytorch_tensor(angle).squeeze(1)
     batch_size = angle.shape[0]
-    R = torch.zeros((batch_size, 3, 3), device=angle.device)
+    R = torch.zeros((batch_size, 3, 3), device=angle.device, dtype=angle.dtype)
     R[:, 0, 0] = torch.cos(angle)
     R[:, 0, 2] = torch.sin(angle)
     R[:, 1, 1] = torch.ones(batch_size)
@@ -44,7 +44,7 @@ def z_rot(angle):
         angle = angle.unsqueeze(0)
     angle = utils.convert_into_at_least_2d_pytorch_tensor(angle).squeeze(1)
     batch_size = angle.shape[0]
-    R = torch.zeros((batch_size, 3, 3), device=angle.device)
+    R = torch.zeros((batch_size, 3, 3), device=angle.device, dtype=angle.dtype)
     R[:, 0, 0] = torch.cos(angle)
     R[:, 0, 1] = -torch.sin(angle)
     R[:, 1, 0] = torch.sin(angle)
