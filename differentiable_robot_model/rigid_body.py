@@ -29,7 +29,7 @@ class DifferentiableRigidBody(torch.nn.Module):
     _parents: Optional["DifferentiableRigidBody"]
     _children: List["DifferentiableRigidBody"]
 
-    def __init__(self, rigid_body_params, device="cpu"):
+    def __init__(self, rigid_body_params, device="cpu", dtype=torch.float32):
 
         super().__init__()
 
@@ -37,12 +37,13 @@ class DifferentiableRigidBody(torch.nn.Module):
         self._children = []
 
         self._device = torch.device(device)
+        self._dtype = dtype
         self.joint_id = rigid_body_params["joint_id"]
         self.name = rigid_body_params["link_name"]
 
         # parameters that can be made learnable
         self.inertia = DifferentiableSpatialRigidBodyInertia(
-            rigid_body_params, device=self._device
+            rigid_body_params, device=self._device, dtype=self._dtype
         )
         self.joint_damping = lambda: rigid_body_params["joint_damping"]
         self.trans = lambda: rigid_body_params["trans"].reshape(1, 3)
@@ -54,25 +55,27 @@ class DifferentiableRigidBody(torch.nn.Module):
 
         self.joint_limits = rigid_body_params["joint_limits"]
 
-        self.joint_pose = CoordinateTransform(device=self._device)
+        self.joint_pose = CoordinateTransform(device=self._device, dtype=self._dtype)
         self.joint_pose.set_translation(torch.reshape(self.trans(), (1, 3)))
 
         # local velocities and accelerations (w.r.t. joint coordinate frame):
-        self.joint_vel = SpatialMotionVec(device=self._device)
-        self.joint_acc = SpatialMotionVec(device=self._device)
+        self.joint_vel = SpatialMotionVec(device=self._device, dtype=self._dtype)
+        self.joint_acc = SpatialMotionVec(device=self._device, dtype=self._dtype)
 
         self.update_joint_state(
-            torch.zeros([1, 1], device=self._device),
-            torch.zeros([1, 1], device=self._device),
+            torch.zeros([1, 1], device=self._device, dtype=self._dtype),
+            torch.zeros([1, 1], device=self._device, dtype=self._dtype),
         )
-        self.update_joint_acc(torch.zeros([1, 1], device=self._device))
+        self.update_joint_acc(
+            torch.zeros([1, 1], device=self._device, dtype=self._dtype)
+        )
 
-        self.pose = CoordinateTransform(device=self._device)
+        self.pose = CoordinateTransform(device=self._device, dtype=self._dtype)
 
-        self.vel = SpatialMotionVec(device=self._device)
-        self.acc = SpatialMotionVec(device=self._device)
+        self.vel = SpatialMotionVec(device=self._device, dtype=self._dtype)
+        self.acc = SpatialMotionVec(device=self._device, dtype=self._dtype)
 
-        self.force = SpatialForceVec(device=self._device)
+        self.force = SpatialForceVec(device=self._device, dtype=self._dtype)
 
     # Kinematic tree construction
     def set_parent(self, link: "DifferentiableRigidBody"):
@@ -110,6 +113,7 @@ class DifferentiableRigidBody(torch.nn.Module):
                 rot=fixed_rotation.repeat(batch_size, 1, 1) @ rot,
                 trans=torch.reshape(self.trans(), (1, 3)).repeat(batch_size, 1),
                 device=self._device,
+                dtype=self._dtype,
             )
 
         else:

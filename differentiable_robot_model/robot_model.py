@@ -39,6 +39,11 @@ def tensor_check(function):
                 arg.device.type == obj._device.type
             ), f"Input argument of different device as module: {arg}"
 
+            # Check dtype
+            assert (
+                arg.dtype is obj._dtype
+            ), f"Input argument of different dtype as module: {arg}"
+
             # Check dimensions & convert to 2-dim tensors
             assert arg.ndim in [1, 2], f"Input tensors must have ndim of 1 or 2."
 
@@ -91,7 +96,7 @@ class DifferentiableRobotModel(torch.nn.Module):
     TODO
     """
 
-    def __init__(self, urdf_path: str, name="", device=None):
+    def __init__(self, urdf_path: str, name="", device=None, dtype=torch.float32):
 
         super().__init__()
 
@@ -100,8 +105,11 @@ class DifferentiableRobotModel(torch.nn.Module):
         self._device = (
             torch.device(device) if device is not None else torch.device("cpu")
         )
+        self._dtype = dtype
 
-        self._urdf_model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
+        self._urdf_model = URDFRobotModel(
+            urdf_path=urdf_path, device=self._device, dtype=self._dtype
+        )
         self._bodies = torch.nn.ModuleList()
         self._n_dofs = 0
         self._controlled_joints = []
@@ -115,7 +123,9 @@ class DifferentiableRobotModel(torch.nn.Module):
             # Initialize body object
             rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
             body = DifferentiableRigidBody(
-                rigid_body_params=rigid_body_params, device=self._device
+                rigid_body_params=rigid_body_params,
+                device=self._device,
+                dtype=self._dtype,
             )
 
             # Joint properties
@@ -165,8 +175,8 @@ class DifferentiableRobotModel(torch.nn.Module):
         # we assume a non-moving base
         parent_body = self._bodies[0]
         parent_body.vel = SpatialMotionVec(
-            torch.zeros((batch_size, 3), device=self._device),
-            torch.zeros((batch_size, 3), device=self._device),
+            torch.zeros((batch_size, 3), device=self._device, dtype=self._dtype),
+            torch.zeros((batch_size, 3), device=self._device, dtype=self._dtype),
         )
 
         # propagate the new joint state through the kinematic chain to update bodies position/velocities
@@ -278,7 +288,9 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         # reset all forces for backward pass
         for i in range(0, len(self._bodies)):
-            self._bodies[i].force = SpatialForceVec(device=self._device)
+            self._bodies[i].force = SpatialForceVec(
+                device=self._device, dtype=self._dtype
+            )
 
         # backward pass to propagate forces up (from endeffector to root body)
         for i in range(len(self._bodies) - 1, 0, -1):
@@ -344,7 +356,9 @@ class DifferentiableRobotModel(torch.nn.Module):
         base_ang_acc = q.new_zeros((batch_size, 3))
         base_lin_acc = q.new_zeros((batch_size, 3))
         if include_gravity:
-            base_lin_acc[:, 2] = 9.81 * torch.ones(batch_size, device=self._device)
+            base_lin_acc[:, 2] = 9.81 * torch.ones(
+                batch_size, device=self._device, dtype=self._dtype
+            )
 
         # we propagate the base forces
         self.iterative_newton_euler(SpatialMotionVec(base_lin_acc, base_ang_acc))
@@ -352,13 +366,15 @@ class DifferentiableRobotModel(torch.nn.Module):
         # we extract the relevant forces for all controlled joints
         for i in range(qdd_des.shape[1]):
             idx = self._controlled_joints[i]
-            rot_axis = torch.zeros((batch_size, 3), device=self._device)
+            rot_axis = torch.zeros(
+                (batch_size, 3), device=self._device, dtype=self._dtype
+            )
             axis = self._bodies[idx].joint_axis[0]
             axis_idx = int(torch.where(axis)[0])
             rot_sign = torch.sign(axis[axis_idx])
 
             rot_axis[:, axis_idx] = rot_sign * torch.ones(
-                batch_size, device=self._device
+                batch_size, device=self._device, dtype=self._dtype
             )
             force[:, i] += (
                 self._bodies[idx].force.ang.unsqueeze(1) @ rot_axis.unsqueeze(2)
@@ -366,7 +382,9 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         # we add forces to counteract damping
         if use_damping:
-            damping_const = torch.zeros((1, self._n_dofs), device=self._device)
+            damping_const = torch.zeros(
+                (1, self._n_dofs), device=self._device, dtype=self._dtype
+            )
             for i in range(self._n_dofs):
                 idx = self._controlled_joints[i]
                 damping_const[:, i] = self._bodies[idx].get_joint_damping_const()
@@ -418,7 +436,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         assert q.shape[1] == self._n_dofs
         batch_size = q.shape[0]
         identity_tensor = (
-            torch.eye(q.shape[1], device=self._device)
+            torch.eye(q.shape[1], device=self._device, dtype=self._dtype)
             .unsqueeze(0)
             .repeat(batch_size, 1, 1)
         )
@@ -514,7 +532,9 @@ class DifferentiableRobotModel(torch.nn.Module):
         batch_size = q.shape[0]
 
         if use_damping:
-            damping_const = torch.zeros((1, self._n_dofs), device=self._device)
+            damping_const = torch.zeros(
+                (1, self._n_dofs), device=self._device, dtype=self._dtype
+            )
             for i in range(self._n_dofs):
                 idx = self._controlled_joints[i]
                 damping_const[:, i] = self._bodies[idx].get_joint_damping_const()
@@ -527,7 +547,9 @@ class DifferentiableRobotModel(torch.nn.Module):
         base_ang_acc = q.new_zeros((batch_size, 3))
         base_lin_acc = q.new_zeros((batch_size, 3))
         if include_gravity:
-            base_lin_acc[:, 2] = 9.81 * torch.ones(batch_size, device=self._device)
+            base_lin_acc[:, 2] = 9.81 * torch.ones(
+                batch_size, device=self._device, dtype=self._dtype
+            )
 
         base_acc = SpatialMotionVec(base_lin_acc, base_ang_acc)
 
@@ -548,7 +570,9 @@ class DifferentiableRobotModel(torch.nn.Module):
             body = self._bodies[i]
 
             S = SpatialMotionVec(
-                lin_motion=torch.zeros((batch_size, 3), device=self._device),
+                lin_motion=torch.zeros(
+                    (batch_size, 3), device=self._device, dtype=self._dtype
+                ),
                 ang_motion=body.joint_axis.repeat((batch_size, 1)),
             )
             body.S = S
@@ -644,8 +668,12 @@ class DifferentiableRobotModel(torch.nn.Module):
         p_e = e_pose.translation()
 
         lin_jac, ang_jac = (
-            torch.zeros([batch_size, 3, self._n_dofs], device=self._device),
-            torch.zeros([batch_size, 3, self._n_dofs], device=self._device),
+            torch.zeros(
+                [batch_size, 3, self._n_dofs], device=self._device, dtype=self._dtype
+            ),
+            torch.zeros(
+                [batch_size, 3, self._n_dofs], device=self._device, dtype=self._dtype
+            ),
         )
 
         joint_id = self._bodies[self._name_to_idx_map[link_name]].joint_id
@@ -755,36 +783,36 @@ class DifferentiableRobotModel(torch.nn.Module):
 
 
 class DifferentiableKUKAiiwa(DifferentiableRobotModel):
-    def __init__(self, device=None):
+    def __init__(self, device=None, dtype=torch.float32):
         rel_urdf_path = "kuka_iiwa/urdf/iiwa7.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = None
         self.name = "differentiable_kuka_iiwa"
-        super().__init__(self.urdf_path, self.name, device=device)
+        super().__init__(self.urdf_path, self.name, device=device, dtype=dtype)
 
 
 class DifferentiableFrankaPanda(DifferentiableRobotModel):
-    def __init__(self, device=None):
+    def __init__(self, device=None, dtype=torch.float32):
         rel_urdf_path = "panda_description/urdf/panda_no_gripper.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = None
         self.name = "differentiable_franka_panda"
-        super().__init__(self.urdf_path, self.name, device=device)
+        super().__init__(self.urdf_path, self.name, device=device, dtype=dtype)
 
 
 class DifferentiableTwoLinkRobot(DifferentiableRobotModel):
-    def __init__(self, device=None):
+    def __init__(self, device=None, dtype=torch.float32):
         rel_urdf_path = "2link_robot.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = None
         self.name = "diff_2d_robot"
-        super().__init__(self.urdf_path, self.name, device=device)
+        super().__init__(self.urdf_path, self.name, device=device, dtype=dtype)
 
 
 class DifferentiableTrifingerEdu(DifferentiableRobotModel):
-    def __init__(self, device=None):
+    def __init__(self, device=None, dtype=torch.float32):
         rel_urdf_path = "trifinger_edu_description/trifinger_edu.urdf"
         self.urdf_path = os.path.join(robot_description_folder, rel_urdf_path)
         self.learnable_rigid_body_config = None
         self.name = "trifinger_edu"
-        super().__init__(self.urdf_path, self.name, device=device)
+        super().__init__(self.urdf_path, self.name, device=device, dtype=dtype)
